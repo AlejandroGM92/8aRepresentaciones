@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Administrador - 8a Representaciones</title>
+    <link rel="stylesheet" href="estilos/style-admin.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="imagenes/LOGO 8A ROJO-SIN FONDO.png" alt="8a Representaciones">
+            </div>
+            <div class="nav-title">Panel Administrador</div>
+            <div class="nav-notifications">
+                <button class="notif-btn" id="btnNotificaciones" title="Ver notificaciones">
+                    🔔 <span class="notif-badge" id="notifBadge"></span>
+                </button>
+                <div class="notif-panel" id="notifPanel">
+                    <div class="notif-panel-header">
+                        <span>Notificaciones</span>
+                        <button id="btnMarcarLeidas" class="notif-leer-btn">Marcar como leídas</button>
+                    </div>
+                    <div id="notifLista" class="notif-lista"></div>
+                </div>
+            </div>
+            <div class="nav-actions">
+                <a href="#" class="nav-link" id="btnCerrarSesion">Cerrar Sesión</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+
+        <!-- Filtros -->
+        <div class="filters-card">
+            <h2>Buscar Actores</h2>
+            <form id="formFiltros">
+                <div class="filters-grid">
+                    <div class="form-group">
+                        <label for="filtroNombre">Nombre</label>
+                        <input type="text" id="filtroNombre" placeholder="Buscar por nombre...">
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroHabilidades">Habilidad especial</label>
+                        <input type="text" id="filtroHabilidades" placeholder="Ej: canto, baile...">
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroIdioma">Idioma</label>
+                        <select id="filtroIdioma">
+                            <option value="">Todos</option>
+                            <option value="Español">Español</option>
+                            <option value="Inglés">Inglés</option>
+                            <option value="Francés">Francés</option>
+                            <option value="Alemán">Alemán</option>
+                            <option value="Italiano">Italiano</option>
+                            <option value="Portugués">Portugués</option>
+                            <option value="Chino">Chino</option>
+                            <option value="Japonés">Japonés</option>
+                            <option value="Árabe">Árabe</option>
+                            <option value="Ruso">Ruso</option>
+                            <option value="Coreano">Coreano</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroNivelIdioma">Nivel de idioma</label>
+                        <select id="filtroNivelIdioma">
+                            <option value="">Todos los niveles</option>
+                            <option value="A1">A1 - Principiante</option>
+                            <option value="A2">A2 - Elemental</option>
+                            <option value="B1">B1 - Intermedio</option>
+                            <option value="B2">B2 - Intermedio Alto</option>
+                            <option value="C1">C1 - Avanzado</option>
+                            <option value="C2">C2 - Dominio</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroAniosExp">Años de experiencia</label>
+                        <select id="filtroAniosExp">
+                            <option value="">Todos</option>
+                            <option value="menos_1">Menos de 1 año</option>
+                            <option value="1">1 año</option>
+                            <option value="2">2 años</option>
+                            <option value="3">3 años</option>
+                            <option value="5">5 años</option>
+                            <option value="mas_5">Más de 5 años</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroEdadAparente">Edad aparente del personaje</label>
+                        <input type="number" id="filtroEdadAparente" placeholder="Ej: 30" min="1" max="99">
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroEscenasSexo">Escenas de sexo</label>
+                        <select id="filtroEscenasSexo">
+                            <option value="">Todos</option>
+                            <option value="1">Sí hace</option>
+                            <option value="0">No hace</option>
+                        </select>
+                    </div>
+                    <div class="form-group edad-group">
+                        <label>Altura (cm)</label>
+                        <div class="edad-inputs">
+                            <input type="number" id="filtroAlturaMin" placeholder="Mín" min="100" max="250">
+                            <span>–</span>
+                            <input type="number" id="filtroAlturaMax" placeholder="Máx" min="100" max="250">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroColorOjos">Color de ojos</label>
+                        <input type="text" id="filtroColorOjos" placeholder="Ej: café, negro...">
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroColorCabello">Color de cabello</label>
+                        <input type="text" id="filtroColorCabello" placeholder="Ej: negro, rubio...">
+                    </div>
+                    <div class="form-group edad-group">
+                        <label>Edad real</label>
+                        <div class="edad-inputs">
+                            <input type="number" id="filtroEdadMin" placeholder="Mín" min="0" max="99">
+                            <span>–</span>
+                            <input type="number" id="filtroEdadMax" placeholder="Máx" min="0" max="99">
+                        </div>
+                    </div>
+                </div>
+                <div class="filters-actions">
+                    <button type="submit" class="btn-primary">Buscar</button>
+                    <button type="button" class="btn-secondary" id="btnLimpiarFiltros">Limpiar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Contador + Crear -->
+        <div class="stats-bar" style="display:flex;justify-content:space-between;align-items:center;">
+            <span id="contadorActores">Cargando...</span>
+            <button class="btn-primary" id="btnCrearActor" style="padding:8px 20px;font-size:13px;">+ Crear Actor</button>
+        </div>
+
+        <!-- Grid de actores -->
+        <div id="actoresGrid" class="actors-grid">
+            <div class="loading-state">Cargando actores...</div>
+        </div>
+    </div>
+
+    <!-- Modal ver/editar -->
+    <div id="modalOverlay" class="modal-overlay" style="display:none;">
+        <div class="modal" id="modalContent">
+            <!-- contenido generado por JS -->
+        </div>
+    </div>
+
+    <!-- Modal confirmar eliminar -->
+    <div id="deleteOverlay" class="modal-overlay" style="display:none;">
+        <div class="modal modal-sm">
+            <h3>Eliminar Actor</h3>
+            <p>¿Estás seguro de eliminar a <strong id="deleteNombre"></strong>? Esta acción no se puede deshacer.</p>
+            <div class="modal-actions">
+                <button class="btn-danger" id="btnConfirmarEliminar">Sí, eliminar</button>
+                <button class="btn-secondary" id="btnCancelarEliminar">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal confirmar logout -->
+    <div id="logoutOverlay" class="modal-overlay" style="display:none;">
+        <div class="modal modal-sm">
+            <div class="logout-modal-body">
+                <div class="logout-icon">🚪</div>
+                <h3>Cerrar Sesión</h3>
+                <p>¿Estás seguro de que deseas cerrar sesión?</p>
+            </div>
+            <div class="modal-actions" style="padding:15px 25px 25px;">
+                <button class="btn-secondary" id="btnCancelarLogout">Cancelar</button>
+                <button class="btn-danger" id="btnConfirmarLogout">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script src="funcionalidad/admin.js"></script>
+</body>
+</html>

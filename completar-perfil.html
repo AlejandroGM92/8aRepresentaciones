@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Completa tu perfil - 8a Representaciones</title>
+    <link rel="stylesheet" href="estilos/style-registro.css">
+</head>
+<body>
+    <div class="registro-container">
+        <div class="registro-header">
+            <div class="logo-container">
+                <img src="imagenes/LOGO 8A ROJO-SIN FONDO.png" alt="8a Representaciones">
+            </div>
+            <h1>¡Bienvenido a 8a Representaciones!</h1>
+            <p>Completa tu perfil de actor para continuar</p>
+        </div>
+
+        <div class="registro-body">
+            <div class="success-message" id="successMessage"></div>
+
+            <form id="completarForm">
+                <!-- Paso 1: Datos de contacto -->
+                <div class="form-step active" id="step1">
+                    <h3>Datos de Contacto</h3>
+
+                    <div class="form-group">
+                        <label for="telefono">Teléfono *</label>
+                        <input type="tel" id="telefono" name="telefono" placeholder="3001234567" required>
+                        <span class="error-message" id="telefonoError">El teléfono es requerido (10 dígitos)</span>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="fechaNacimiento">Fecha de nacimiento</label>
+                            <input type="date" id="fechaNacimiento" name="fechaNacimiento">
+                        </div>
+                        <div class="form-group">
+                            <label for="genero">Género</label>
+                            <select id="genero" name="genero">
+                                <option value="">Seleccionar</option>
+                                <option value="masculino">Masculino</option>
+                                <option value="femenino">Femenino</option>
+                                <option value="otro">Otro</option>
+                                <option value="prefiero_no_decir">Prefiero no decir</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-next" id="btnNext1">Siguiente →</button>
+                </div>
+
+                <!-- Paso 2: Características físicas -->
+                <div class="form-step" id="step2">
+                    <h3>Características Físicas</h3>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="altura">Altura (cm)</label>
+                            <input type="number" id="altura" placeholder="170" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label for="peso">Peso (kg)</label>
+                            <input type="number" id="peso" placeholder="70" step="0.01">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="colorOjos">Color de ojos</label>
+                            <input type="text" id="colorOjos" placeholder="Ej: Café, Verde, Azul">
+                        </div>
+                        <div class="form-group">
+                            <label for="colorCabello">Color de cabello</label>
+                            <input type="text" id="colorCabello" placeholder="Ej: Negro, Rubio, Castaño">
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn-back" id="btnBack2">← Atrás</button>
+                        <button type="button" class="btn-next" id="btnNext2">Siguiente →</button>
+                    </div>
+                </div>
+
+                <!-- Paso 3: Experiencia -->
+                <div class="form-step" id="step3">
+                    <h3>Experiencia y Habilidades</h3>
+
+                    <div class="form-group">
+                        <label for="biografia">Biografía</label>
+                        <textarea id="biografia" rows="4" placeholder="Cuéntanos sobre ti y tu pasión por la actuación..."></textarea>
+                        <small>Máximo 500 caracteres</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="experiencia">Experiencia profesional</label>
+                        <textarea id="experiencia" rows="4" placeholder="Cine, televisión, teatro, comerciales..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="habilidades">Habilidades especiales</label>
+                        <textarea id="habilidades" rows="3" placeholder="Canto, baile, artes marciales, idiomas..."></textarea>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="button" class="btn-back" id="btnBack3">← Atrás</button>
+                        <button type="submit" class="btn-registro">Completar Perfil</button>
+                    </div>
+                </div>
+
+                <!-- Indicador de pasos -->
+                <div class="step-indicator">
+                    <div class="step active" data-step="1">
+                        <div class="step-circle">1</div>
+                        <span class="step-label">Contacto</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" data-step="2">
+                        <div class="step-circle">2</div>
+                        <span class="step-label">Físico</span>
+                    </div>
+                    <div class="step-line"></div>
+                    <div class="step" data-step="3">
+                        <div class="step-circle">3</div>
+                        <span class="step-label">Experiencia</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="funcionalidad/funciones-completar.js"></script>
+</body>
+</html>

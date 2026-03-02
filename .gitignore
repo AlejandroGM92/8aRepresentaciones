@@ -1,0 +1,24 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (contiene contraseñas y secretos)
+.env
+
+# Archivos subidos por usuarios
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# Carpeta de configuración OAuth (solo para referencia local)
+OAUTH Google/
