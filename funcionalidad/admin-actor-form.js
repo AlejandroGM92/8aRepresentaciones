@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 
 const HABILIDADES_LISTA = [
     'Canto','Baile','Presentación','Doblaje','Stunt de riesgo',
@@ -44,7 +44,7 @@ function mostrarNotif(msg, tipo = 'success') {
 
 function fotoSrc(foto) {
     return foto
-        ? `http://localhost:3000${foto}`
+        ? foto
         : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='38' r='28' fill='%23ccc'/%3E%3Cellipse cx='50' cy='100' rx='45' ry='32' fill='%23ccc'/%3E%3C/svg%3E";
 }
 
@@ -594,7 +594,7 @@ async function subirFotoPerfil(file) {
     });
     const data = await res.json();
     if (res.ok) {
-        document.getElementById('fotoPerfilImg').src = `http://localhost:3000${data.url}`;
+        document.getElementById('fotoPerfilImg').src = data.url;
         mostrarNotif('Foto de perfil actualizada');
     } else {
         mostrarNotif(data.error || 'Error al subir foto', 'error');
@@ -621,7 +621,7 @@ function renderGaleria(fotos) {
     }
     grid.innerHTML = fotos.map(f => `
         <div class="galeria-form-item">
-            <img src="http://localhost:3000${f.url_foto}" onerror="this.style.display='none'">
+            <img src="${f.url_foto}" onerror="this.style.display='none'">
             <button class="btn-del-galeria" onclick="eliminarFotoGaleria(${f.id})">✕</button>
         </div>`).join('');
 }

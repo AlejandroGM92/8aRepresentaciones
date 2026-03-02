@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 
 function mostrarNotificacion(mensaje, tipo = 'success') {
     const n = document.getElementById('notification');

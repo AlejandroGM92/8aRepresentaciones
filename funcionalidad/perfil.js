@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 
 // ==================== AUTH ====================
 
@@ -374,7 +374,7 @@ function llenarFormulario(perfil) {
 
     // Foto
     if (perfil.foto_perfil) {
-        document.getElementById('fotoPerfil').src = `http://localhost:3000${perfil.foto_perfil}`;
+        document.getElementById('fotoPerfil').src = perfil.foto_perfil;
     }
 
     // Formaciones
@@ -530,7 +530,7 @@ document.getElementById('uploadFotoPerfil').addEventListener('change', async fun
         });
         if (response.ok) {
             const data = await response.json();
-            document.getElementById('fotoPerfil').src = `http://localhost:3000${data.url}`;
+            document.getElementById('fotoPerfil').src = data.url;
             mostrarNotificacion('Foto de perfil actualizada', 'success');
             const actorCache = JSON.parse(localStorage.getItem('actor') || '{}');
             actorCache.foto_perfil = data.url;
@@ -569,7 +569,7 @@ function cargarFotos(fotos) {
     }
     galeria.innerHTML = fotos.map(foto => `
         <div class="photo-item">
-            <img src="http://localhost:3000${foto.url_foto}" alt="${foto.descripcion || 'Foto'}">
+            <img src="${foto.url_foto}" alt="${foto.descripcion || 'Foto'}">
             <div class="photo-item-overlay">
                 <button class="btn-delete-photo" onclick="eliminarFoto(${foto.id})">🗑️ Eliminar</button>
             </div>
@@ -674,7 +674,7 @@ window.addEventListener('DOMContentLoaded', () => {
         document.getElementById('nombre').value            = actor.nombre  || '';
         document.getElementById('telefono').value          = actor.telefono || '';
         if (actor.foto_perfil) {
-            document.getElementById('fotoPerfil').src = `http://localhost:3000${actor.foto_perfil}`;
+            document.getElementById('fotoPerfil').src = actor.foto_perfil;
         }
     }
 

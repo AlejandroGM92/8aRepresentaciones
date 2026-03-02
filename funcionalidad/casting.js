@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 
 const TIPOS_EXP = {
     television: 'Televisión', cine: 'Cine', teatro: 'Teatro',
@@ -23,7 +23,7 @@ function mostrarNotificacion(mensaje, tipo = 'success') {
 
 function fotoSrc(foto) {
     return foto
-        ? `http://localhost:3000${foto}`
+        ? foto
         : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='38' r='28' fill='%23ccc'/%3E%3Cellipse cx='50' cy='100' rx='45' ry='32' fill='%23ccc'/%3E%3C/svg%3E";
 }
 
@@ -265,7 +265,7 @@ function mostrarModalVista(a, fotos) {
             <div class="vista-section">
                 <h4>Galería de Fotos</h4>
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:8px">
-                    ${fotos.map(f => `<img src="http://localhost:3000${f.url_foto}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">`).join('')}
+                    ${fotos.map(f => `<img src="${f.url_foto}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px" onerror="this.style.display='none'">`).join('')}
                 </div>
             </div>` : ''}
 

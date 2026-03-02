@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 
 // Toggle visibilidad contraseña
 document.getElementById('togglePassword').addEventListener('click', function() {
