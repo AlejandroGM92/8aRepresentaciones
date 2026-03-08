@@ -363,6 +363,13 @@ function construirFormHTML(a) {
                 </select>
             </div>
         </div>
+        <div class="form-group" style="padding:14px;background:#fff8e1;border-radius:8px;border:1px solid #ffe082;margin-bottom:4px">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;color:#555">
+                <input type="checkbox" id="fPuedeSubirContrato" ${a.puede_subir_contrato ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer;accent-color:#910909">
+                Permitir al actor subir contrato firmado
+            </label>
+            <p style="font-size:12px;color:#888;margin:6px 0 0 28px">Cuando está activado, el actor verá el botón para subir su PDF en su perfil.</p>
+        </div>
         <div class="form-group">
             <label>Biografía</label>
             <textarea id="fBiografia" rows="4">${a.biografia || ''}</textarea>
