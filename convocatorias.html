@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convocatorias - 8a Representaciones</title>
+    <link rel="stylesheet" href="estilos/style-admin.css">
+    <style>
+        .conv-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 22px 26px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+            border-left: 4px solid #ddd;
+            transition: box-shadow .2s;
+        }
+        .conv-card.publicada { border-left-color: #1d6f42; }
+        .conv-card.cerrada   { border-left-color: #aaa; }
+        .conv-card.borrador  { border-left-color: #f0a500; }
+        .conv-titulo { font-size: 17px; font-weight: 700; color: #222; margin: 0 0 6px; }
+        .conv-meta { font-size: 12px; color: #999; margin-bottom: 10px; }
+        .conv-desc { font-size: 14px; color: #555; line-height: 1.6; margin-bottom: 10px; white-space: pre-wrap; }
+        .conv-req  { font-size: 13px; color: #444; background: #fafafa; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; white-space: pre-wrap; }
+        .conv-badge {
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .badge-publicada { background: #d4edda; color: #1d6f42; }
+        .badge-borrador  { background: #fff3cd; color: #856404; }
+        .badge-cerrada   { background: #e9ecef; color: #6c757d; }
+        .conv-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+        .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: all .2s; }
+        .btn-publicar { background: #1d6f42; color: #fff; }
+        .btn-publicar:hover { background: #155232; }
+        .btn-cerrar-conv { background: #6c757d; color: #fff; }
+        .btn-cerrar-conv:hover { background: #545b62; }
+        .btn-editar-conv { background: #f0a500; color: #fff; }
+        .btn-editar-conv:hover { background: #d4920a; }
+        .btn-eliminar-conv { background: #ff4757; color: #fff; }
+        .btn-eliminar-conv:hover { background: #e03040; }
+        .conv-fecha-limite { font-size: 13px; color: #910909; font-weight: 600; margin-bottom: 8px; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-header h2 { margin: 0; font-size: 20px; }
+        .empty-conv { text-align: center; color: #aaa; padding: 40px; font-size: 15px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media(max-width:600px){ .form-row { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="imagenes/LOGO 8A ROJO-SIN FONDO.png" alt="8a Representaciones">
+            </div>
+            <div class="nav-title">Convocatorias</div>
+            <div style="flex:1"></div>
+            <div class="nav-actions">
+                <a href="admin.html" class="nav-link">← Panel Admin</a>
+                <a href="#" class="nav-link" id="btnCerrarSesion" style="margin-left:12px">Cerrar Sesión</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <div class="section-header">
+            <h2>Gestión de Convocatorias</h2>
+            <button class="btn-primary" id="btnNuevaConv" style="padding:9px 22px;font-size:13px">+ Nueva Convocatoria</button>
+        </div>
+
+        <div id="listaConvocatorias">
+            <div class="loading-state">Cargando convocatorias...</div>
+        </div>
+    </div>
+
+    <!-- Modal crear/editar -->
+    <div id="modalOverlay" class="modal-overlay" style="display:none">
+        <div class="modal" style="max-width:560px;width:100%">
+            <div class="modal-header">
+                <h2 id="modalTitulo">Nueva Convocatoria</h2>
+                <button class="btn-close-modal" onclick="cerrarModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="convId">
+                <div class="form-group">
+                    <label for="convTitulo">Título *</label>
+                    <input type="text" id="convTitulo" placeholder="Ej: Casting para serie de televisión" maxlength="255">
+                </div>
+                <div class="form-group">
+                    <label for="convDesc">Descripción</label>
+                    <textarea id="convDesc" rows="4" placeholder="Describe la convocatoria, el proyecto, etc." style="width:100%;resize:vertical"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="convReq">Requisitos</label>
+                    <textarea id="convReq" rows="3" placeholder="Ej: Hombres 25-35 años, altura mínima 175 cm..." style="width:100%;resize:vertical"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="convFecha">Fecha límite</label>
+                        <input type="date" id="convFecha">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
+                <button class="btn-primary" id="btnGuardarConv">Guardar borrador</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal confirmar publicar -->
+    <div id="publicarOverlay" class="modal-overlay" style="display:none">
+        <div class="modal modal-sm">
+            <div class="logout-modal-body">
+                <div class="logout-icon">📢</div>
+                <h3>Publicar convocatoria</h3>
+                <p>Se enviará un correo a <strong>todos los actores</strong> notificándoles esta convocatoria. ¿Continuar?</p>
+            </div>
+            <div class="modal-actions" style="padding:15px 25px 25px">
+                <button class="btn-secondary" id="btnCancelarPublicar">Cancelar</button>
+                <button class="btn-primary" id="btnConfirmarPublicar">Sí, publicar y notificar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal confirmar eliminar -->
+    <div id="deleteOverlay" class="modal-overlay" style="display:none">
+        <div class="modal modal-sm">
+            <h3>Eliminar convocatoria</h3>
+            <p>¿Eliminar "<strong id="deleteNombreConv"></strong>"? Esta acción no se puede deshacer.</p>
+            <div class="modal-actions">
+                <button class="btn-danger" id="btnConfirmarDelete">Sí, eliminar</button>
+                <button class="btn-secondary" id="btnCancelarDelete">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal confirmar logout -->
+    <div id="logoutOverlay" class="modal-overlay" style="display:none">
+        <div class="modal modal-sm">
+            <div class="logout-modal-body">
+                <div class="logout-icon">🚪</div>
+                <h3>Cerrar Sesión</h3>
+                <p>¿Estás seguro de que deseas cerrar sesión?</p>
+            </div>
+            <div class="modal-actions" style="padding:15px 25px 25px">
+                <button class="btn-secondary" id="btnCancelarLogout">Cancelar</button>
+                <button class="btn-danger" id="btnConfirmarLogout">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script src="funcionalidad/convocatorias-admin.js"></script>
+</body>
+</html>

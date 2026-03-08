@@ -775,4 +775,48 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Cargar perfil desde API
     cargarPerfil();
+
+    // Cargar convocatorias cuando se activa la pestaña
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.tab === 'convocatorias') cargarConvocatoriasActor();
+        });
+    });
 });
+
+// ==================== CONVOCATORIAS (ACTOR) ====================
+
+async function cargarConvocatoriasActor() {
+    const cont = document.getElementById('listaConvocatoriasActor');
+    cont.innerHTML = '<div style="padding:20px;text-align:center;color:#aaa">Cargando...</div>';
+    try {
+        const res = await fetch(`${API_URL}/convocatorias`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) { cont.innerHTML = '<p style="color:#aaa;text-align:center">No se pudieron cargar las convocatorias.</p>'; return; }
+        const data = await res.json();
+        const lista = data.convocatorias || [];
+        if (lista.length === 0) {
+            cont.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px">No hay convocatorias activas por el momento.</p>';
+            return;
+        }
+        cont.innerHTML = lista.map(c => {
+            const fechaLimite = c.fecha_limite
+                ? `<div style="font-size:13px;color:#910909;font-weight:600;margin-bottom:8px">Fecha límite: ${new Date(c.fecha_limite + 'T00:00:00').toLocaleDateString('es-CO', {day:'2-digit',month:'long',year:'numeric'})}</div>`
+                : '';
+            const fechaPub = c.fecha_publicacion
+                ? `<div style="font-size:12px;color:#bbb;margin-bottom:10px">Publicada el ${new Date(c.fecha_publicacion).toLocaleDateString('es-CO')}</div>`
+                : '';
+            return `
+            <div style="border:1px solid #eee;border-radius:10px;padding:18px 20px;margin-bottom:14px;border-left:4px solid #910909">
+                <h3 style="margin:0 0 6px;font-size:16px;color:#222">${(c.titulo||'').replace(/</g,'&lt;')}</h3>
+                ${fechaPub}
+                ${fechaLimite}
+                ${c.descripcion ? `<p style="font-size:14px;color:#555;line-height:1.6;margin-bottom:10px;white-space:pre-wrap">${c.descripcion.replace(/</g,'&lt;')}</p>` : ''}
+                ${c.requisitos  ? `<div style="background:#fafafa;border-radius:8px;padding:10px 14px;font-size:13px;color:#444;white-space:pre-wrap"><strong>Requisitos:</strong><br>${c.requisitos.replace(/</g,'&lt;')}</div>` : ''}
+            </div>`;
+        }).join('');
+    } catch {
+        cont.innerHTML = '<p style="color:#aaa;text-align:center">Error de conexión.</p>';
+    }
+}

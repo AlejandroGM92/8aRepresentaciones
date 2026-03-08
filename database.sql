@@ -80,3 +80,22 @@ VALUES (
 
 -- Eliminar actor y todas sus fotos (gracias a CASCADE)
 -- DELETE FROM actores WHERE id = 1;
+
+-- ==================== MIGRACION: CONVOCATORIAS Y RESET PASSWORD ====================
+
+-- Tabla de convocatorias
+CREATE TABLE IF NOT EXISTS convocatorias (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titulo VARCHAR(255) NOT NULL,
+    descripcion TEXT,
+    requisitos TEXT,
+    fecha_limite DATE NULL,
+    estado ENUM('borrador','publicada','cerrada') DEFAULT 'borrador',
+    fecha_creacion DATETIME DEFAULT NOW(),
+    fecha_publicacion DATETIME NULL
+);
+
+-- Columnas para reset de contraseña
+ALTER TABLE actores
+    ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255) NULL,
+    ADD COLUMN IF NOT EXISTS reset_token_expiry DATETIME NULL;

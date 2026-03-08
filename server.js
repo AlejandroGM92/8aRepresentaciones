@@ -8,7 +8,9 @@ const path = require('path');
 const https = require('https');
 const { OAuth2Client } = require('google-auth-library');
 const fs = require('fs');
+const crypto = require('crypto');
 const XLSX = require('xlsx');
+const mailer = require('./mailer');
 require('dotenv').config();
 
 if (!fs.existsSync('uploads/contratos')) fs.mkdirSync('uploads/contratos', { recursive: true });
@@ -193,9 +195,12 @@ app.post('/api/registro', async (req, res) => {
             ]
         );
 
-        res.status(201).json({ 
+        // Correo de bienvenida en background
+        mailer.enviarBienvenida({ nombre, email }).catch(e => console.error('Mailer bienvenida:', e));
+
+        res.status(201).json({
             mensaje: 'Actor registrado exitosamente',
-            actorId: result.insertId 
+            actorId: result.insertId
         });
 
     } catch (error) {
@@ -935,6 +940,11 @@ app.post('/api/perfil/contrato', verificarToken, uploadContrato.single('contrato
             'INSERT INTO contratos_actor (actor_id, url_contrato, nombre_archivo) VALUES (?, ?, ?)',
             [req.userId, url, req.file.originalname]
         );
+
+        // Notificar al admin en background
+        const [[actorInfo]] = await promisePool.query('SELECT nombre, email FROM actores WHERE id = ?', [req.userId]);
+        if (actorInfo) mailer.enviarContratoSubido(actorInfo, req.file.originalname).catch(e => console.error('Mailer contrato:', e));
+
         res.json({ mensaje: 'Contrato subido exitosamente', url, nombre: req.file.originalname });
     } catch (error) {
         console.error('Error subir contrato:', error);
@@ -1154,6 +1164,168 @@ app.post('/api/casting/registro', async (req, res) => {
         res.status(500).json({ error: 'Error al crear la cuenta' });
     }
 });
+
+// ==================== CONVOCATORIAS ====================
+
+// Actor: listar convocatorias publicadas
+app.get('/api/convocatorias', verificarToken, async (req, res) => {
+    try {
+        const [rows] = await promisePool.query(
+            `SELECT id, titulo, descripcion, requisitos, fecha_limite, fecha_publicacion
+             FROM convocatorias WHERE estado = 'publicada' ORDER BY fecha_publicacion DESC`
+        );
+        res.json({ convocatorias: rows });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener convocatorias' });
+    }
+});
+
+// Admin: listar todas las convocatorias
+app.get('/api/admin/convocatorias', verificarAdmin, async (req, res) => {
+    try {
+        const [rows] = await promisePool.query(
+            'SELECT * FROM convocatorias ORDER BY fecha_creacion DESC'
+        );
+        res.json({ convocatorias: rows });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener convocatorias' });
+    }
+});
+
+// Admin: crear convocatoria
+app.post('/api/admin/convocatorias', verificarAdmin, async (req, res) => {
+    try {
+        const { titulo, descripcion, requisitos, fecha_limite } = req.body;
+        if (!titulo) return res.status(400).json({ error: 'El título es requerido' });
+        const [result] = await promisePool.query(
+            'INSERT INTO convocatorias (titulo, descripcion, requisitos, fecha_limite) VALUES (?, ?, ?, ?)',
+            [titulo, descripcion || null, requisitos || null, fecha_limite || null]
+        );
+        res.status(201).json({ mensaje: 'Convocatoria creada', id: result.insertId });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al crear convocatoria' });
+    }
+});
+
+// Admin: editar convocatoria
+app.put('/api/admin/convocatorias/:id', verificarAdmin, async (req, res) => {
+    try {
+        const { titulo, descripcion, requisitos, fecha_limite } = req.body;
+        await promisePool.query(
+            'UPDATE convocatorias SET titulo=?, descripcion=?, requisitos=?, fecha_limite=? WHERE id=?',
+            [titulo, descripcion || null, requisitos || null, fecha_limite || null, req.params.id]
+        );
+        res.json({ mensaje: 'Convocatoria actualizada' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al actualizar convocatoria' });
+    }
+});
+
+// Admin: publicar convocatoria y enviar correos
+app.post('/api/admin/convocatorias/:id/publicar', verificarAdmin, async (req, res) => {
+    try {
+        const [[conv]] = await promisePool.query('SELECT * FROM convocatorias WHERE id = ?', [req.params.id]);
+        if (!conv) return res.status(404).json({ error: 'Convocatoria no encontrada' });
+
+        await promisePool.query(
+            "UPDATE convocatorias SET estado='publicada', fecha_publicacion=NOW() WHERE id=?",
+            [req.params.id]
+        );
+
+        // Obtener todos los actores activos (no admin, no casting)
+        const [actores] = await promisePool.query(
+            'SELECT nombre, email FROM actores WHERE is_admin = 0 AND is_casting = 0 AND email IS NOT NULL'
+        );
+
+        // Enviar correos en background
+        mailer.enviarConvocatoria(actores, conv).catch(e => console.error('Mailer convocatoria:', e));
+
+        res.json({ mensaje: `Convocatoria publicada. Se notificará a ${actores.length} actores.` });
+    } catch (error) {
+        console.error('Error publicar convocatoria:', error);
+        res.status(500).json({ error: 'Error al publicar convocatoria' });
+    }
+});
+
+// Admin: cerrar convocatoria
+app.post('/api/admin/convocatorias/:id/cerrar', verificarAdmin, async (req, res) => {
+    try {
+        await promisePool.query(
+            "UPDATE convocatorias SET estado='cerrada' WHERE id=?",
+            [req.params.id]
+        );
+        res.json({ mensaje: 'Convocatoria cerrada' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al cerrar convocatoria' });
+    }
+});
+
+// Admin: eliminar convocatoria
+app.delete('/api/admin/convocatorias/:id', verificarAdmin, async (req, res) => {
+    try {
+        await promisePool.query('DELETE FROM convocatorias WHERE id = ?', [req.params.id]);
+        res.json({ mensaje: 'Convocatoria eliminada' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al eliminar convocatoria' });
+    }
+});
+
+// ==================== RESET DE CONTRASEÑA ====================
+
+// Solicitar reset
+app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ error: 'Email requerido' });
+
+        const [[actor]] = await promisePool.query(
+            'SELECT id, nombre, email FROM actores WHERE email = ?', [email]
+        );
+        // Siempre responder igual para no revelar si existe el correo
+        if (!actor) return res.json({ mensaje: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.' });
+
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiry = new Date(Date.now() + 3600000); // 1 hora
+        await promisePool.query(
+            'UPDATE actores SET reset_token=?, reset_token_expiry=? WHERE id=?',
+            [token, expiry, actor.id]
+        );
+
+        mailer.enviarResetPassword(actor.email, actor.nombre, token).catch(e => console.error('Mailer reset:', e));
+        res.json({ mensaje: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.' });
+    } catch (error) {
+        console.error('Error forgot-password:', error);
+        res.status(500).json({ error: 'Error al procesar la solicitud' });
+    }
+});
+
+// Confirmar nuevo password
+app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+        const { token, password } = req.body;
+        if (!token || !password) return res.status(400).json({ error: 'Token y contraseña requeridos' });
+        if (password.length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+
+        const [[actor]] = await promisePool.query(
+            'SELECT id FROM actores WHERE reset_token=? AND reset_token_expiry > NOW()', [token]
+        );
+        if (!actor) return res.status(400).json({ error: 'Token inválido o expirado' });
+
+        const hashed = await bcrypt.hash(password, 10);
+        await promisePool.query(
+            'UPDATE actores SET password=?, reset_token=NULL, reset_token_expiry=NULL WHERE id=?',
+            [hashed, actor.id]
+        );
+        res.json({ mensaje: 'Contraseña actualizada exitosamente' });
+    } catch (error) {
+        console.error('Error reset-password:', error);
+        res.status(500).json({ error: 'Error al restablecer contraseña' });
+    }
+});
+
+// Servir páginas de reset y convocatorias
+app.get('/reset-password.html', (_req, res) => res.sendFile(path.join(__dirname, 'reset-password.html')));
+app.get('/convocatorias.html', (_req, res) => res.sendFile(path.join(__dirname, 'convocatorias.html')));
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
