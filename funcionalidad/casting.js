@@ -207,6 +207,8 @@ function mostrarModalVista(a, fotos) {
                 <h4>Información Personal</h4>
                 <div class="vista-grid">
                     <div class="vista-item"><label>Fecha Nac.</label><span>${fecha}</span></div>
+                    <div class="vista-item"><label>País</label><span>${a.pais_nacimiento || '—'}</span></div>
+                    <div class="vista-item"><label>Ciudad</label><span>${a.ciudad_nacimiento || '—'}</span></div>
                     <div class="vista-item"><label>Altura</label><span>${a.altura ? a.altura + ' cm' : '—'}</span></div>
                     <div class="vista-item"><label>Peso</label><span>${a.peso ? a.peso + ' kg' : '—'}</span></div>
                     <div class="vista-item"><label>Ojos</label><span>${a.color_ojos || '—'}</span></div>

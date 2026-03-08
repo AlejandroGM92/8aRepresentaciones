@@ -331,6 +331,7 @@ async function cargarPerfil() {
             const data = await response.json();
             llenarFormulario(data.perfil);
             cargarFotos(data.fotos);
+            cargarContratos();
         } else if (response.status === 401) {
             localStorage.removeItem('token');
             window.location.href = 'login.html';
@@ -348,6 +349,8 @@ function llenarFormulario(perfil) {
     const fecha = perfil.fecha_nacimiento ? perfil.fecha_nacimiento.split('T')[0] : '';
     document.getElementById('fechaNacimiento').value   = fecha;
     document.getElementById('genero').value            = perfil.genero || '';
+    document.getElementById('ciudadNacimiento').value  = perfil.ciudad_nacimiento || '';
+    document.getElementById('paisNacimiento').value    = perfil.pais_nacimiento || '';
     document.getElementById('altura').value            = perfil.altura || '';
     document.getElementById('peso').value              = perfil.peso || '';
     document.getElementById('colorOjos').value         = perfil.color_ojos || '';
@@ -422,6 +425,8 @@ function buildSaveBody() {
         telefono:          document.getElementById('telefono').value,
         fecha_nacimiento:  document.getElementById('fechaNacimiento').value,
         genero:            document.getElementById('genero').value,
+        ciudad_nacimiento: document.getElementById('ciudadNacimiento').value || null,
+        pais_nacimiento:   document.getElementById('paisNacimiento').value || null,
         altura:            document.getElementById('altura').value,
         peso:              document.getElementById('peso').value,
         color_ojos:        document.getElementById('colorOjos').value,
@@ -592,6 +597,75 @@ async function eliminarFoto(fotoId) {
         }
     } catch { mostrarNotificacion('Error de conexión', 'error'); }
 }
+
+
+// ==================== CONTRATOS ====================
+
+async function cargarContratos() {
+    const token = getToken();
+    try {
+        const res = await fetch(API_URL + '/perfil/contratos', {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        renderContratos(data.contratos || []);
+    } catch { /* silencioso */ }
+}
+
+function renderContratos(contratos) {
+    const lista = document.getElementById('listaContratos');
+    const empty = document.getElementById('emptyContratos');
+    if (!lista) return;
+    if (contratos.length === 0) {
+        lista.innerHTML = '';
+        if (empty) empty.style.display = 'block';
+        return;
+    }
+    if (empty) empty.style.display = 'none';
+    lista.innerHTML = contratos.map(ct => {
+        const fecha = ct.fecha_subida ? new Date(ct.fecha_subida).toLocaleDateString('es-CO') : '';
+        return `<div class="entry-card" style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;">
+            <div>
+                <span style="font-size:20px;margin-right:8px">📄</span>
+                <a href="${ct.url_contrato}" target="_blank" style="color:#910909;font-weight:600;font-size:14px">${ct.nombre_archivo}</a>
+                <span style="color:#999;font-size:12px;margin-left:10px">${fecha}</span>
+            </div>
+            <button class="btn-remove-entry" onclick="eliminarContrato(${ct.id})">✕</button>
+        </div>`;
+    }).join('');
+}
+
+window.eliminarContrato = async function(id) {
+    if (!confirm('¿Eliminar este contrato?')) return;
+    const token = getToken();
+    try {
+        const res = await fetch(API_URL + '/perfil/contratos/' + id, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (res.ok) { mostrarNotificacion('Contrato eliminado'); cargarContratos(); }
+        else mostrarNotificacion('Error al eliminar', 'error');
+    } catch { mostrarNotificacion('Error de conexión', 'error'); }
+};
+
+
+document.getElementById('uploadContrato').addEventListener('change', async function(e) {
+    if (!e.target.files[0]) return;
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('contrato', e.target.files[0]);
+    this.disabled = true;
+    try {
+        const res = await fetch(API_URL + '/perfil/contrato', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: formData
+        });
+        if (res.ok) { mostrarNotificacion('Contrato subido exitosamente'); cargarContratos(); }
+        else { const d = await res.json(); mostrarNotificacion(d.error || 'Error al subir', 'error'); }
+    } catch { mostrarNotificacion('Error de conexión', 'error'); }
+    finally { this.disabled = false; this.value = ''; }
+});
 
 // ==================== CONTRASEÑA ====================
 

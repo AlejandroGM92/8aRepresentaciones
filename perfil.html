@@ -79,6 +79,42 @@
                         </div>
                     </div>
 
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="ciudadNacimiento">Ciudad de nacimiento</label>
+                            <input type="text" id="ciudadNacimiento" placeholder="Ej: Bogotá, Medellín...">
+                        </div>
+                        <div class="form-group">
+                            <label for="paisNacimiento">País de nacimiento</label>
+                            <select id="paisNacimiento">
+                                <option value="">Seleccionar país</option>
+                                <option value="Colombia">Colombia</option>
+                                <option value="México">México</option>
+                                <option value="Argentina">Argentina</option>
+                                <option value="Chile">Chile</option>
+                                <option value="Perú">Perú</option>
+                                <option value="Venezuela">Venezuela</option>
+                                <option value="Ecuador">Ecuador</option>
+                                <option value="Bolivia">Bolivia</option>
+                                <option value="Paraguay">Paraguay</option>
+                                <option value="Uruguay">Uruguay</option>
+                                <option value="Brasil">Brasil</option>
+                                <option value="España">España</option>
+                                <option value="Estados Unidos">Estados Unidos</option>
+                                <option value="Costa Rica">Costa Rica</option>
+                                <option value="Panamá">Panamá</option>
+                                <option value="Guatemala">Guatemala</option>
+                                <option value="Honduras">Honduras</option>
+                                <option value="Nicaragua">Nicaragua</option>
+                                <option value="El Salvador">El Salvador</option>
+                                <option value="República Dominicana">República Dominicana</option>
+                                <option value="Cuba">Cuba</option>
+                                <option value="Puerto Rico">Puerto Rico</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <h3>Edad Aparente</h3>
                     <p style="font-size:13px;color:#888;margin-bottom:12px">¿A qué rango de edad puedes interpretar personajes?</p>
                     <div class="form-row">
@@ -284,6 +320,18 @@
                         <input type="url" id="redImdb" placeholder="https://imdb.com/name/nm...">
                     </div>
                 </div>
+            </div>
+
+            <!-- Contrato Firmado -->
+            <div class="card">
+                <div class="card-header-flex">
+                    <h2>Contrato Firmado</h2>
+                    <label for="uploadContrato" class="btn-secondary btn-sm" style="cursor:pointer">+ Subir PDF</label>
+                    <input type="file" id="uploadContrato" accept="application/pdf" style="display:none">
+                </div>
+                <p style="font-size:13px;color:#888;margin-bottom:12px">Sube tu contrato firmado en formato PDF (máx. 10 MB)</p>
+                <div id="listaContratos"></div>
+                <div id="emptyContratos" class="empty-state-inline">Sin contratos subidos.</div>
             </div>
 
             <button type="button" class="btn-primary" id="btnGuardarExperiencia">Guardar Todo</button>

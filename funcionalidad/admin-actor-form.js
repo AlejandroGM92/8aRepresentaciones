@@ -698,6 +698,8 @@ window.guardarActor = async function() {
         telefono:              get('fTelefono').trim(),
         fecha_nacimiento:      get('fFechaNac'),
         genero:                get('fGenero'),
+        ciudad_nacimiento:      get('fCiudadNac') || null,
+        pais_nacimiento:       get('fPaisNac') || null,
         altura:                get('fAltura'),
         peso:                  get('fPeso'),
         color_ojos:            get('fColorOjos').trim(),

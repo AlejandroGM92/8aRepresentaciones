@@ -7,7 +7,10 @@ const multer = require('multer');
 const path = require('path');
 const https = require('https');
 const { OAuth2Client } = require('google-auth-library');
+const fs = require('fs');
 require('dotenv').config();
+
+if (!fs.existsSync('uploads/contratos')) fs.mkdirSync('uploads/contratos', { recursive: true });
 
 const app = express();
 
@@ -52,6 +55,19 @@ const upload = multer({
             return cb(null, true);
         }
         cb(new Error('Solo se permiten imágenes (jpeg, jpg, png, gif)'));
+    }
+});
+
+
+const uploadContrato = multer({
+    storage: multer.diskStorage({
+        destination: (_req, _file, cb) => cb(null, 'uploads/contratos/'),
+        filename: (_req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+    }),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        if (file.mimetype === 'application/pdf') cb(null, true);
+        else cb(new Error('Solo se permiten archivos PDF'));
     }
 });
 
@@ -253,7 +269,8 @@ app.get('/api/perfil', verificarToken, async (req, res) => {
              formacion_artistica, redes_sociales, idiomas,
              edad_aparente_min, edad_aparente_max,
              tiene_manager, nombre_manager, fechas_no_disponibles,
-             anio_inicio_experiencia, escenas_sexo, link_reel
+             anio_inicio_experiencia, escenas_sexo, link_reel,
+             ciudad_nacimiento, pais_nacimiento
              FROM actores WHERE id = ?`,
             [req.userId]
         );
@@ -289,7 +306,8 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
             formacion_artistica, redes_sociales, idiomas,
             edad_aparente_min, edad_aparente_max,
             tiene_manager, nombre_manager, fechas_no_disponibles,
-            anio_inicio_experiencia, escenas_sexo, link_reel
+            anio_inicio_experiencia, escenas_sexo, link_reel,
+            ciudad_nacimiento, pais_nacimiento
         } = req.body;
 
         await promisePool.query(
@@ -301,7 +319,8 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
              formacion_artistica = ?, redes_sociales = ?, idiomas = ?,
              edad_aparente_min = ?, edad_aparente_max = ?,
              tiene_manager = ?, nombre_manager = ?, fechas_no_disponibles = ?,
-             anio_inicio_experiencia = ?, escenas_sexo = ?, link_reel = ?
+             anio_inicio_experiencia = ?, escenas_sexo = ?, link_reel = ?,
+             ciudad_nacimiento = ?, pais_nacimiento = ?
              WHERE id = ?`,
             [nombre, telefono || null, fecha_nacimiento || null, genero || null,
              altura || null, peso || null, color_ojos || null, color_cabello || null,
@@ -314,6 +333,7 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
              anio_inicio_experiencia || null,
              escenas_sexo != null ? escenas_sexo : null,
              link_reel || null,
+             ciudad_nacimiento || null, pais_nacimiento || null,
              req.userId]
         );
 
@@ -557,7 +577,7 @@ app.post('/api/auth/microsoft', async (req, res) => {
 app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
     try {
         const { nombre, edad_min, edad_max, habilidades, idioma, nivel_idioma,
-                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo } = req.query;
+                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, pais_nacimiento } = req.query;
 
         let query = `SELECT id, nombre, email, telefono, fecha_nacimiento, genero, altura, peso,
             color_ojos, color_cabello, talla_camiseta, talla_pantalon, talla_zapatos,
@@ -565,6 +585,7 @@ app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
             foto_perfil, fecha_registro, is_admin,
             anio_inicio_experiencia, edad_aparente_min, edad_aparente_max,
             escenas_sexo, fechas_no_disponibles,
+            ciudad_nacimiento, pais_nacimiento,
             TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
             FROM actores WHERE 1=1`;
         const params = [];
@@ -591,6 +612,7 @@ app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
                 case 'mas_5':   query += ' AND anio_inicio_experiencia <= ?'; params.push(anioActual - 6); break;
             }
         }
+        if (pais_nacimiento) { query += ' AND pais_nacimiento = ?'; params.push(pais_nacimiento); }
 
         query += ' ORDER BY nombre ASC';
 
@@ -623,6 +645,7 @@ app.get('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              foto_perfil, fecha_registro, is_admin, is_casting,
              edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
              fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel,
+             ciudad_nacimiento, pais_nacimiento,
              TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
              FROM actores WHERE id = ?`,
             [req.params.id]
@@ -644,7 +667,8 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
                 talla_camiseta, talla_pantalon, talla_zapatos,
                 formacion_artistica, redes_sociales, idiomas, is_admin, is_casting,
                 edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
-                fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel } = req.body;
+                fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel,
+                ciudad_nacimiento, pais_nacimiento } = req.body;
 
         await promisePool.query(
             `UPDATE actores SET nombre=?, email=?, telefono=?, fecha_nacimiento=?, genero=?,
@@ -652,7 +676,8 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              experiencia=?, talla_camiseta=?, talla_pantalon=?, talla_zapatos=?,
              formacion_artistica=?, redes_sociales=?, idiomas=?, is_admin=?, is_casting=?,
              edad_aparente_min=?, edad_aparente_max=?, tiene_manager=?, nombre_manager=?,
-             fechas_no_disponibles=?, anio_inicio_experiencia=?, escenas_sexo=?, link_reel=?
+             fechas_no_disponibles=?, anio_inicio_experiencia=?, escenas_sexo=?, link_reel=?,
+             ciudad_nacimiento=?, pais_nacimiento=?
              WHERE id=?`,
             [nombre, email, telefono || null, fecha_nacimiento || null, genero || null,
              altura || null, peso || null, color_ojos || null, color_cabello || null,
@@ -664,6 +689,7 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              tiene_manager != null ? tiene_manager : null, nombre_manager || null,
              fechas_no_disponibles || null, anio_inicio_experiencia || null,
              escenas_sexo != null ? escenas_sexo : null, link_reel || null,
+             ciudad_nacimiento || null, pais_nacimiento || null,
              req.params.id]
         );
         res.json({ mensaje: 'Actor actualizado exitosamente' });
@@ -682,7 +708,8 @@ app.post('/api/admin/actores', verificarAdmin, async (req, res) => {
             talla_camiseta, talla_pantalon, talla_zapatos, is_casting,
             experiencia, formacion_artistica, redes_sociales, idiomas,
             edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
-            fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel
+            fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel,
+            ciudad_nacimiento, pais_nacimiento
         } = req.body;
 
         if (!nombre || !email || !password) {
@@ -704,6 +731,7 @@ app.post('/api/admin/actores', verificarAdmin, async (req, res) => {
                 experiencia, formacion_artistica, redes_sociales, idiomas,
                 edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
                 fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel,
+                ciudad_nacimiento, pais_nacimiento,
                 is_casting, perfil_completo, fecha_registro
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())`,
             [
@@ -717,6 +745,7 @@ app.post('/api/admin/actores', verificarAdmin, async (req, res) => {
                 tiene_manager != null ? tiene_manager : null, nombre_manager || null,
                 fechas_no_disponibles || null, anio_inicio_experiencia || null,
                 escenas_sexo != null ? escenas_sexo : null, link_reel || null,
+                ciudad_nacimiento || null, pais_nacimiento || null,
                 is_casting ? 1 : 0
             ]
         );
@@ -809,7 +838,7 @@ app.delete('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
 app.get('/api/casting/actores', verificarCasting, async (req, res) => {
     try {
         const { nombre, edad_min, edad_max, habilidades, idioma, nivel_idioma,
-                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo } = req.query;
+                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, pais_nacimiento } = req.query;
 
         let query = `SELECT id, nombre, fecha_nacimiento, genero, altura, peso,
             color_ojos, color_cabello, talla_camiseta, talla_pantalon, talla_zapatos,
@@ -817,6 +846,7 @@ app.get('/api/casting/actores', verificarCasting, async (req, res) => {
             foto_perfil, fecha_registro,
             anio_inicio_experiencia, edad_aparente_min, edad_aparente_max,
             escenas_sexo, fechas_no_disponibles,
+            ciudad_nacimiento, pais_nacimiento,
             TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
             FROM actores WHERE is_admin = 0 AND (is_casting IS NULL OR is_casting = 0)`;
         const params = [];
@@ -843,6 +873,7 @@ app.get('/api/casting/actores', verificarCasting, async (req, res) => {
                 case 'mas_5':   query += ' AND anio_inicio_experiencia <= ?'; params.push(anioActual - 6); break;
             }
         }
+        if (pais_nacimiento) { query += ' AND pais_nacimiento = ?'; params.push(pais_nacimiento); }
 
         query += ' ORDER BY nombre ASC';
 
@@ -874,6 +905,7 @@ app.get('/api/casting/actores/:id', verificarCasting, async (req, res) => {
              biografia, habilidades, experiencia, formacion_artistica, redes_sociales, idiomas,
              foto_perfil, fecha_registro,
              edad_aparente_min, edad_aparente_max, escenas_sexo, link_reel,
+             ciudad_nacimiento, pais_nacimiento,
              TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
              FROM actores WHERE id = ? AND is_admin = 0`,
             [req.params.id]
@@ -884,6 +916,66 @@ app.get('/api/casting/actores/:id', verificarCasting, async (req, res) => {
     } catch (error) {
         console.error('Error casting actor:', error);
         res.status(500).json({ error: 'Error al obtener actor' });
+    }
+});
+
+
+// ==================== CONTRATOS ====================
+
+// Actor sube su contrato
+app.post('/api/perfil/contrato', verificarToken, uploadContrato.single('contrato'), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ error: 'No se proporcionó ningún archivo PDF' });
+        const url = '/uploads/contratos/' + req.file.filename;
+        await promisePool.query(
+            'INSERT INTO contratos_actor (actor_id, url_contrato, nombre_archivo) VALUES (?, ?, ?)',
+            [req.userId, url, req.file.originalname]
+        );
+        res.json({ mensaje: 'Contrato subido exitosamente', url, nombre: req.file.originalname });
+    } catch (error) {
+        console.error('Error subir contrato:', error);
+        res.status(500).json({ error: 'Error al subir el contrato' });
+    }
+});
+
+// Actor lista sus contratos
+app.get('/api/perfil/contratos', verificarToken, async (req, res) => {
+    try {
+        const [contratos] = await promisePool.query(
+            'SELECT id, url_contrato, nombre_archivo, fecha_subida FROM contratos_actor WHERE actor_id = ? ORDER BY fecha_subida DESC',
+            [req.userId]
+        );
+        res.json({ contratos });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener contratos' });
+    }
+});
+
+// Actor elimina su contrato
+app.delete('/api/perfil/contratos/:id', verificarToken, async (req, res) => {
+    try {
+        const [rows] = await promisePool.query(
+            'SELECT id FROM contratos_actor WHERE id = ? AND actor_id = ?',
+            [req.params.id, req.userId]
+        );
+        if (rows.length === 0) return res.status(404).json({ error: 'Contrato no encontrado' });
+        await promisePool.query('DELETE FROM contratos_actor WHERE id = ?', [req.params.id]);
+        res.json({ mensaje: 'Contrato eliminado' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al eliminar el contrato' });
+    }
+});
+
+// Admin lista contratos de un actor
+app.get('/api/admin/actores/:id/contratos', verificarAdmin, async (req, res) => {
+    try {
+        const [contratos] = await promisePool.query(
+            'SELECT id, url_contrato, nombre_archivo, fecha_subida FROM contratos_actor WHERE actor_id = ? ORDER BY fecha_subida DESC',
+            [req.params.id]
+        );
+        res.json({ contratos });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener contratos' });
     }
 });
 
