@@ -332,6 +332,14 @@ async function cargarPerfil() {
             llenarFormulario(data.perfil);
             cargarFotos(data.fotos);
             cargarContratos();
+            // Mostrar/ocultar botón de subida según permiso del admin
+            const uploadLabel = document.querySelector('label[for="uploadContrato"]');
+            if (uploadLabel) uploadLabel.style.display = data.perfil.puede_subir_contrato ? '' : 'none';
+            const hint = document.querySelector('#tab-experiencia .card p');
+            if (!data.perfil.puede_subir_contrato) {
+                const msgEl = document.getElementById('contratoHint');
+                if (msgEl) msgEl.style.display = 'block';
+            }
         } else if (response.status === 401) {
             localStorage.removeItem('token');
             window.location.href = 'login.html';

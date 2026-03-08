@@ -270,7 +270,7 @@ app.get('/api/perfil', verificarToken, async (req, res) => {
              edad_aparente_min, edad_aparente_max,
              tiene_manager, nombre_manager, fechas_no_disponibles,
              anio_inicio_experiencia, escenas_sexo, link_reel,
-             ciudad_nacimiento, pais_nacimiento
+             ciudad_nacimiento, pais_nacimiento, puede_subir_contrato
              FROM actores WHERE id = ?`,
             [req.userId]
         );
@@ -645,7 +645,7 @@ app.get('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              foto_perfil, fecha_registro, is_admin, is_casting,
              edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
              fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel,
-             ciudad_nacimiento, pais_nacimiento,
+             ciudad_nacimiento, pais_nacimiento, puede_subir_contrato,
              TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
              FROM actores WHERE id = ?`,
             [req.params.id]
@@ -668,7 +668,7 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
                 formacion_artistica, redes_sociales, idiomas, is_admin, is_casting,
                 edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
                 fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel,
-                ciudad_nacimiento, pais_nacimiento } = req.body;
+                ciudad_nacimiento, pais_nacimiento, puede_subir_contrato } = req.body;
 
         await promisePool.query(
             `UPDATE actores SET nombre=?, email=?, telefono=?, fecha_nacimiento=?, genero=?,
@@ -677,7 +677,7 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              formacion_artistica=?, redes_sociales=?, idiomas=?, is_admin=?, is_casting=?,
              edad_aparente_min=?, edad_aparente_max=?, tiene_manager=?, nombre_manager=?,
              fechas_no_disponibles=?, anio_inicio_experiencia=?, escenas_sexo=?, link_reel=?,
-             ciudad_nacimiento=?, pais_nacimiento=?
+             ciudad_nacimiento=?, pais_nacimiento=?, puede_subir_contrato=?
              WHERE id=?`,
             [nombre, email, telefono || null, fecha_nacimiento || null, genero || null,
              altura || null, peso || null, color_ojos || null, color_cabello || null,
@@ -690,6 +690,7 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              fechas_no_disponibles || null, anio_inicio_experiencia || null,
              escenas_sexo != null ? escenas_sexo : null, link_reel || null,
              ciudad_nacimiento || null, pais_nacimiento || null,
+             puede_subir_contrato ? 1 : 0,
              req.params.id]
         );
         res.json({ mensaje: 'Actor actualizado exitosamente' });
@@ -926,6 +927,8 @@ app.get('/api/casting/actores/:id', verificarCasting, async (req, res) => {
 app.post('/api/perfil/contrato', verificarToken, uploadContrato.single('contrato'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No se proporcionó ningún archivo PDF' });
+        const [[actor]] = await promisePool.query('SELECT puede_subir_contrato FROM actores WHERE id = ?', [req.userId]);
+        if (!actor || !actor.puede_subir_contrato) return res.status(403).json({ error: 'No tienes permiso para subir contratos. Contacta al administrador.' });
         const url = '/uploads/contratos/' + req.file.filename;
         await promisePool.query(
             'INSERT INTO contratos_actor (actor_id, url_contrato, nombre_archivo) VALUES (?, ?, ?)',

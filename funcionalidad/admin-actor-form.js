@@ -700,6 +700,7 @@ window.guardarActor = async function() {
         genero:                get('fGenero'),
         ciudad_nacimiento:      get('fCiudadNac') || null,
         pais_nacimiento:       get('fPaisNac') || null,
+        puede_subir_contrato:  document.getElementById('fPuedeSubirContrato') ? document.getElementById('fPuedeSubirContrato').checked : false,
         altura:                get('fAltura'),
         peso:                  get('fPeso'),
         color_ojos:            get('fColorOjos').trim(),
