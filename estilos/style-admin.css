@@ -160,6 +160,20 @@ body {
 
 .btn-danger:hover { background: #e03040; }
 
+.btn-excel {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #1d6f42;
+    color: white;
+}
+
+.btn-excel:hover { background: #155232; }
+
 /* Stats bar */
 .stats-bar {
     color: #666;

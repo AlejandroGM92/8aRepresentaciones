@@ -285,6 +285,7 @@ function mostrarModalVista(a) {
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="cerrarModal()">Cerrar</button>
+            <button class="btn-excel" onclick="descargarExcel(${a.id}, '${(a.nombre||'actor').replace(/'/g,"\\'")}')">&#8595; Excel</button>
             <button class="btn-primary" onclick="irEditarActor(${a.id})">Editar Perfil Completo</button>
         </div>
     `;
@@ -342,6 +343,23 @@ function cerrarDeleteModal() {
 
 window.cerrarModal = function() {
     document.getElementById('modalOverlay').style.display = 'none';
+};
+
+window.descargarExcel = async function(id, nombre) {
+    const token = getToken();
+    try {
+        const res = await fetch(`${API_URL}/admin/actores/${id}/excel`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) { mostrarNotificacion('Error al generar Excel', 'error'); return; }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `perfil_${nombre.replace(/\s+/g, '_')}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+    } catch { mostrarNotificacion('Error de conexión', 'error'); }
 };
 
 document.getElementById('modalOverlay').addEventListener('click', function(e) {

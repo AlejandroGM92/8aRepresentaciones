@@ -8,6 +8,7 @@ const path = require('path');
 const https = require('https');
 const { OAuth2Client } = require('google-auth-library');
 const fs = require('fs');
+const XLSX = require('xlsx');
 require('dotenv').config();
 
 if (!fs.existsSync('uploads/contratos')) fs.mkdirSync('uploads/contratos', { recursive: true });
@@ -979,6 +980,103 @@ app.get('/api/admin/actores/:id/contratos', verificarAdmin, async (req, res) => 
         res.json({ contratos });
     } catch (error) {
         res.status(500).json({ error: 'Error al obtener contratos' });
+    }
+});
+
+// Descargar perfil de actor en Excel (admin)
+app.get('/api/admin/actores/:id/excel', verificarAdmin, async (req, res) => {
+    try {
+        const [actores] = await promisePool.query(
+            `SELECT id, nombre, email, telefono, fecha_nacimiento, genero, altura, peso,
+             color_ojos, color_cabello, talla_camiseta, talla_pantalon, talla_zapatos,
+             biografia, habilidades, experiencia, formacion_artistica, redes_sociales, idiomas,
+             ciudad_nacimiento, pais_nacimiento, edad_aparente_min, edad_aparente_max,
+             tiene_manager, nombre_manager, anio_inicio_experiencia, escenas_sexo, link_reel,
+             fechas_no_disponibles, fecha_registro,
+             TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
+             FROM actores WHERE id = ?`,
+            [req.params.id]
+        );
+        if (actores.length === 0) return res.status(404).json({ error: 'Actor no encontrado' });
+        const a = actores[0];
+
+        const parseJ = (s, fb) => { try { return JSON.parse(s || '') || fb; } catch { return fb; } };
+
+        const idiomas = parseJ(a.idiomas, []);
+        const exps    = parseJ(a.experiencia, []);
+        const forms   = parseJ(a.formacion_artistica, []);
+        const redes   = parseJ(a.redes_sociales, {});
+        const habs    = (() => { try { const h = JSON.parse(a.habilidades||'[]'); return Array.isArray(h)?h:[]; } catch { return a.habilidades?[a.habilidades]:[]; } })();
+        const fechasND = parseJ(a.fechas_no_disponibles, []);
+
+        const [contratos] = await promisePool.query(
+            'SELECT nombre_archivo, fecha_subida FROM contratos_actor WHERE actor_id = ? ORDER BY fecha_subida DESC',
+            [req.params.id]
+        );
+
+        const tiposExp = { television:'Televisión', cine:'Cine', teatro:'Teatro', serie:'Serie', comercial:'Comercial', otra:'Otra' };
+
+        // Hoja principal
+        const datos = [
+            ['Campo', 'Valor'],
+            ['Nombre', a.nombre || ''],
+            ['Email', a.email || ''],
+            ['Teléfono', a.telefono || ''],
+            ['Fecha de nacimiento', a.fecha_nacimiento ? new Date(a.fecha_nacimiento).toLocaleDateString('es-CO') : ''],
+            ['Edad', a.edad != null ? a.edad + ' años' : ''],
+            ['Género', a.genero || ''],
+            ['País de nacimiento', a.pais_nacimiento || ''],
+            ['Ciudad de nacimiento', a.ciudad_nacimiento || ''],
+            ['Altura (cm)', a.altura || ''],
+            ['Peso (kg)', a.peso || ''],
+            ['Color de ojos', a.color_ojos || ''],
+            ['Color de cabello', a.color_cabello || ''],
+            ['Talla camiseta', a.talla_camiseta || ''],
+            ['Talla pantalón', a.talla_pantalon || ''],
+            ['Talla zapatos', a.talla_zapatos || ''],
+            ['Edad aparente (mín)', a.edad_aparente_min || ''],
+            ['Edad aparente (máx)', a.edad_aparente_max || ''],
+            ['Escenas de sexo', a.escenas_sexo === 1 ? 'Sí' : a.escenas_sexo === 0 ? 'No' : ''],
+            ['Link Reel', a.link_reel || ''],
+            ['Año inicio experiencia', a.anio_inicio_experiencia || ''],
+            ['Tiene manager', a.tiene_manager ? 'Sí' : 'No'],
+            ['Nombre manager', a.nombre_manager || ''],
+            ['Habilidades', habs.join(', ')],
+            ['Idiomas', idiomas.map(i => i.idioma + (i.nivel ? ' (' + i.nivel + ')' : '')).join(', ')],
+            ['Experiencia profesional', exps.map(e => (e.nombre||'') + (e.tipo ? ' – ' + (tiposExp[e.tipo]||e.tipo) : '')).join(' | ')],
+            ['Formación artística', forms.map(f => f.nombre||'').join(' | ')],
+            ['Facebook', redes.facebook || ''],
+            ['Instagram', redes.instagram || ''],
+            ['TikTok', redes.tiktok || ''],
+            ['IMDB', redes.imdb || ''],
+            ['Fechas no disponibles', fechasND.map(f => f.inicio + ' a ' + f.fin).join(' | ')],
+            ['Biografía', a.biografia || ''],
+            ['Fecha de registro', a.fecha_registro ? new Date(a.fecha_registro).toLocaleDateString('es-CO') : ''],
+        ];
+
+        const wb = XLSX.utils.book_new();
+        const wsDatos = XLSX.utils.aoa_to_sheet(datos);
+        wsDatos['!cols'] = [{ wch: 28 }, { wch: 60 }];
+        XLSX.utils.book_append_sheet(wb, wsDatos, 'Perfil');
+
+        // Hoja contratos
+        if (contratos.length > 0) {
+            const wsContratos = XLSX.utils.aoa_to_sheet([
+                ['Archivo', 'Fecha de subida'],
+                ...contratos.map(c => [c.nombre_archivo, new Date(c.fecha_subida).toLocaleDateString('es-CO')])
+            ]);
+            wsContratos['!cols'] = [{ wch: 40 }, { wch: 20 }];
+            XLSX.utils.book_append_sheet(wb, wsContratos, 'Contratos');
+        }
+
+        const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        const nombreArchivo = `perfil_${(a.nombre || 'actor').replace(/\s+/g, '_')}.xlsx`;
+        res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buf);
+    } catch (error) {
+        console.error('Error excel:', error);
+        res.status(500).json({ error: 'Error al generar Excel' });
     }
 });
 
