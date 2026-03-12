@@ -800,23 +800,94 @@ async function cargarConvocatoriasActor() {
             cont.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px">No hay convocatorias activas por el momento.</p>';
             return;
         }
-        cont.innerHTML = lista.map(c => {
+
+        // Cargar personajes y postulación propia para cada convocatoria
+        const detalle = await Promise.all(lista.map(async c => {
+            const [resPj, resPost] = await Promise.all([
+                fetch(`${API_URL}/convocatorias/${c.id}/personajes`, { headers: { 'Authorization': `Bearer ${getToken()}` } }),
+                fetch(`${API_URL}/convocatorias/${c.id}/mi-postulacion`, { headers: { 'Authorization': `Bearer ${getToken()}` } })
+            ]);
+            const { personajes = [] } = await resPj.json();
+            const { postulacion = null } = await resPost.json();
+            return { ...c, personajes, postulacion };
+        }));
+
+        cont.innerHTML = detalle.map(c => {
             const fechaLimite = c.fecha_limite
-                ? `<div style="font-size:13px;color:#910909;font-weight:600;margin-bottom:8px">Fecha límite: ${new Date(c.fecha_limite + 'T00:00:00').toLocaleDateString('es-CO', {day:'2-digit',month:'long',year:'numeric'})}</div>`
+                ? `<div style="font-size:13px;color:#910909;font-weight:600;margin-bottom:8px">Fecha límite: ${new Date(c.fecha_limite + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}</div>`
                 : '';
             const fechaPub = c.fecha_publicacion
-                ? `<div style="font-size:12px;color:#bbb;margin-bottom:10px">Publicada el ${new Date(c.fecha_publicacion).toLocaleDateString('es-CO')}</div>`
+                ? `<div style="font-size:12px;color:#bbb;margin-bottom:8px">Publicada el ${new Date(c.fecha_publicacion).toLocaleDateString('es-CO')}</div>`
                 : '';
+
+            let seccionPostular = '';
+            if (c.postulacion) {
+                seccionPostular = `
+                    <div style="margin-top:14px;background:#e8f5e9;border-radius:8px;padding:12px 16px;font-size:13px;color:#1d6f42">
+                        <strong>✓ Ya te postulaste</strong> para el personaje: <strong>${c.postulacion.personaje.replace(/</g, '&lt;')}</strong>
+                    </div>`;
+            } else if (c.personajes.length > 0) {
+                const opciones = c.personajes.map(p =>
+                    `<label style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid #eee;border-radius:8px;cursor:pointer;margin-bottom:6px;font-size:14px">
+                        <input type="radio" name="personaje_${c.id}" value="${p.id}" style="accent-color:#910909">
+                        <span><strong>${p.nombre.replace(/</g, '&lt;')}</strong>${p.descripcion ? `<span style="color:#888;font-size:12px;margin-left:6px">${p.descripcion.replace(/</g, '&lt;')}</span>` : ''}</span>
+                    </label>`
+                ).join('');
+                seccionPostular = `
+                    <div style="margin-top:14px">
+                        <p style="font-size:13px;font-weight:600;color:#555;margin:0 0 8px">Selecciona un personaje para postularte:</p>
+                        <div>${opciones}</div>
+                        <button onclick="postularse(${c.id})"
+                            style="margin-top:10px;padding:9px 22px;background:linear-gradient(135deg,#910909,#c92a2a);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">
+                            Postularme
+                        </button>
+                        <p id="msgPostular_${c.id}" style="font-size:13px;margin-top:8px;display:none"></p>
+                    </div>`;
+            } else {
+                seccionPostular = `<p style="font-size:13px;color:#bbb;margin-top:10px">Esta convocatoria no tiene personajes definidos aún.</p>`;
+            }
+
             return `
-            <div style="border:1px solid #eee;border-radius:10px;padding:18px 20px;margin-bottom:14px;border-left:4px solid #910909">
-                <h3 style="margin:0 0 6px;font-size:16px;color:#222">${(c.titulo||'').replace(/</g,'&lt;')}</h3>
-                ${fechaPub}
-                ${fechaLimite}
-                ${c.descripcion ? `<p style="font-size:14px;color:#555;line-height:1.6;margin-bottom:10px;white-space:pre-wrap">${c.descripcion.replace(/</g,'&lt;')}</p>` : ''}
-                ${c.requisitos  ? `<div style="background:#fafafa;border-radius:8px;padding:10px 14px;font-size:13px;color:#444;white-space:pre-wrap"><strong>Requisitos:</strong><br>${c.requisitos.replace(/</g,'&lt;')}</div>` : ''}
+            <div style="border:1px solid #eee;border-radius:10px;padding:18px 20px;margin-bottom:16px;border-left:4px solid #910909">
+                <h3 style="margin:0 0 4px;font-size:16px;color:#222">${(c.titulo || '').replace(/</g, '&lt;')}</h3>
+                ${fechaPub}${fechaLimite}
+                ${c.descripcion ? `<p style="font-size:14px;color:#555;line-height:1.6;margin-bottom:10px;white-space:pre-wrap">${c.descripcion.replace(/</g, '&lt;')}</p>` : ''}
+                ${c.requisitos ? `<div style="background:#fafafa;border-radius:8px;padding:10px 14px;font-size:13px;color:#444;white-space:pre-wrap;margin-bottom:4px"><strong>Requisitos:</strong><br>${c.requisitos.replace(/</g, '&lt;')}</div>` : ''}
+                ${seccionPostular}
             </div>`;
         }).join('');
-    } catch {
+    } catch (e) {
+        console.error(e);
         cont.innerHTML = '<p style="color:#aaa;text-align:center">Error de conexión.</p>';
     }
 }
+
+window.postularse = async function(convId) {
+    const seleccionado = document.querySelector(`input[name="personaje_${convId}"]:checked`);
+    const msg = document.getElementById(`msgPostular_${convId}`);
+    if (!seleccionado) {
+        msg.textContent = 'Debes seleccionar un personaje.';
+        msg.style.color = '#910909';
+        msg.style.display = 'block';
+        return;
+    }
+    try {
+        const res = await fetch(`${API_URL}/convocatorias/${convId}/postular`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ personaje_id: parseInt(seleccionado.value) })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            cargarConvocatoriasActor();
+        } else {
+            msg.textContent = data.error || 'Error al postularse.';
+            msg.style.color = '#910909';
+            msg.style.display = 'block';
+        }
+    } catch {
+        msg.textContent = 'Error de conexión.';
+        msg.style.color = '#910909';
+        msg.style.display = 'block';
+    }
+};

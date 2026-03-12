@@ -1270,6 +1270,151 @@ app.delete('/api/admin/convocatorias/:id', verificarAdmin, async (req, res) => {
     }
 });
 
+// ==================== PERSONAJES Y POSTULACIONES ====================
+
+// Admin: guardar personajes de una convocatoria (reemplaza lista completa)
+app.post('/api/admin/convocatorias/:id/personajes', verificarAdmin, async (req, res) => {
+    try {
+        const { personajes } = req.body;
+        if (!Array.isArray(personajes)) return res.status(400).json({ error: 'Se esperaba un arreglo de personajes' });
+        await promisePool.query('DELETE FROM personajes_convocatoria WHERE convocatoria_id = ?', [req.params.id]);
+        for (const p of personajes) {
+            if (!p.nombre || !p.nombre.trim()) continue;
+            await promisePool.query(
+                'INSERT INTO personajes_convocatoria (convocatoria_id, nombre, descripcion) VALUES (?, ?, ?)',
+                [req.params.id, p.nombre.trim(), p.descripcion || null]
+            );
+        }
+        res.json({ mensaje: 'Personajes guardados' });
+    } catch (error) {
+        console.error('Error personajes:', error);
+        res.status(500).json({ error: 'Error al guardar personajes' });
+    }
+});
+
+// Admin/Actor: listar personajes de una convocatoria
+app.get('/api/convocatorias/:id/personajes', verificarToken, async (req, res) => {
+    try {
+        const [rows] = await promisePool.query(
+            'SELECT id, nombre, descripcion FROM personajes_convocatoria WHERE convocatoria_id = ? ORDER BY id',
+            [req.params.id]
+        );
+        res.json({ personajes: rows });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener personajes' });
+    }
+});
+
+// Actor: postularse a una convocatoria
+app.post('/api/convocatorias/:id/postular', verificarToken, async (req, res) => {
+    try {
+        const { personaje_id } = req.body;
+        if (!personaje_id) return res.status(400).json({ error: 'Debes seleccionar un personaje' });
+        const [[conv]] = await promisePool.query(
+            "SELECT id FROM convocatorias WHERE id = ? AND estado = 'publicada'", [req.params.id]
+        );
+        if (!conv) return res.status(400).json({ error: 'Convocatoria no disponible' });
+        const [[personaje]] = await promisePool.query(
+            'SELECT id FROM personajes_convocatoria WHERE id = ? AND convocatoria_id = ?',
+            [personaje_id, req.params.id]
+        );
+        if (!personaje) return res.status(400).json({ error: 'Personaje no válido' });
+        const [[yaPostulado]] = await promisePool.query(
+            'SELECT id FROM postulaciones WHERE actor_id = ? AND convocatoria_id = ?',
+            [req.userId, req.params.id]
+        );
+        if (yaPostulado) return res.status(400).json({ error: 'Ya te postulaste a esta convocatoria' });
+        await promisePool.query(
+            'INSERT INTO postulaciones (actor_id, convocatoria_id, personaje_id) VALUES (?, ?, ?)',
+            [req.userId, req.params.id, personaje_id]
+        );
+        res.json({ mensaje: 'Postulación registrada exitosamente' });
+    } catch (error) {
+        console.error('Error postular:', error);
+        res.status(500).json({ error: 'Error al registrar postulación' });
+    }
+});
+
+// Actor: consultar su postulación en una convocatoria
+app.get('/api/convocatorias/:id/mi-postulacion', verificarToken, async (req, res) => {
+    try {
+        const [[post]] = await promisePool.query(
+            `SELECT p.id, pc.nombre AS personaje, p.fecha_postulacion
+             FROM postulaciones p
+             JOIN personajes_convocatoria pc ON pc.id = p.personaje_id
+             WHERE p.actor_id = ? AND p.convocatoria_id = ?`,
+            [req.userId, req.params.id]
+        );
+        res.json({ postulacion: post || null });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al consultar postulación' });
+    }
+});
+
+// Admin: ver postulaciones de una convocatoria
+app.get('/api/admin/convocatorias/:id/postulaciones', verificarAdmin, async (req, res) => {
+    try {
+        const [rows] = await promisePool.query(
+            `SELECT p.id, p.fecha_postulacion,
+                    a.nombre AS actor, TIMESTAMPDIFF(YEAR, a.fecha_nacimiento, CURDATE()) AS edad,
+                    a.altura, a.ciudad_nacimiento, a.pais_nacimiento,
+                    pc.nombre AS personaje
+             FROM postulaciones p
+             JOIN actores a ON a.id = p.actor_id
+             JOIN personajes_convocatoria pc ON pc.id = p.personaje_id
+             WHERE p.convocatoria_id = ?
+             ORDER BY pc.nombre, p.fecha_postulacion`,
+            [req.params.id]
+        );
+        res.json({ postulaciones: rows });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener postulaciones' });
+    }
+});
+
+// Admin: descargar postulaciones en Excel
+app.get('/api/admin/convocatorias/:id/postulaciones/excel', verificarAdmin, async (req, res) => {
+    try {
+        const [[conv]] = await promisePool.query('SELECT titulo FROM convocatorias WHERE id = ?', [req.params.id]);
+        if (!conv) return res.status(404).json({ error: 'Convocatoria no encontrada' });
+        const [rows] = await promisePool.query(
+            `SELECT pc.nombre AS personaje, a.nombre AS actor,
+                    TIMESTAMPDIFF(YEAR, a.fecha_nacimiento, CURDATE()) AS edad,
+                    a.altura AS estatura_cm, a.ciudad_nacimiento, a.pais_nacimiento,
+                    p.fecha_postulacion
+             FROM postulaciones p
+             JOIN actores a ON a.id = p.actor_id
+             JOIN personajes_convocatoria pc ON pc.id = p.personaje_id
+             WHERE p.convocatoria_id = ?
+             ORDER BY pc.nombre, a.nombre`,
+            [req.params.id]
+        );
+        const wb = XLSX.utils.book_new();
+        const wsData = [
+            ['Personaje', 'Nombre Actor', 'Edad', 'Estatura (cm)', 'Ciudad de Nacimiento', 'País de Nacimiento', 'Fecha Postulación'],
+            ...rows.map(r => [
+                r.personaje, r.actor,
+                r.edad != null ? r.edad : '',
+                r.estatura_cm || '',
+                r.ciudad_nacimiento || '',
+                r.pais_nacimiento || '',
+                new Date(r.fecha_postulacion).toLocaleDateString('es-CO')
+            ])
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(wsData);
+        ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 8 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 18 }];
+        XLSX.utils.book_append_sheet(wb, ws, 'Postulaciones');
+        const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        const nombreArchivo = `postulaciones_${(conv.titulo || 'conv').replace(/\s+/g, '_')}.xlsx`;
+        res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buf);
+    } catch (error) {
+        console.error('Error excel postulaciones:', error);
+        res.status(500).json({ error: 'Error al generar Excel' });
+    }
+});
+
 // ==================== RESET DE CONTRASEÑA ====================
 
 // Solicitar reset

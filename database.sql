@@ -99,3 +99,25 @@ CREATE TABLE IF NOT EXISTS convocatorias (
 ALTER TABLE actores
     ADD COLUMN IF NOT EXISTS reset_token VARCHAR(255) NULL,
     ADD COLUMN IF NOT EXISTS reset_token_expiry DATETIME NULL;
+
+-- Personajes por convocatoria
+CREATE TABLE IF NOT EXISTS personajes_convocatoria (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    convocatoria_id INT NOT NULL,
+    nombre VARCHAR(255) NOT NULL,
+    descripcion TEXT NULL,
+    FOREIGN KEY (convocatoria_id) REFERENCES convocatorias(id) ON DELETE CASCADE
+);
+
+-- Postulaciones de actores
+CREATE TABLE IF NOT EXISTS postulaciones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    actor_id INT NOT NULL,
+    convocatoria_id INT NOT NULL,
+    personaje_id INT NOT NULL,
+    fecha_postulacion DATETIME DEFAULT NOW(),
+    UNIQUE KEY unique_postulacion (actor_id, convocatoria_id),
+    FOREIGN KEY (actor_id) REFERENCES actores(id) ON DELETE CASCADE,
+    FOREIGN KEY (convocatoria_id) REFERENCES convocatorias(id) ON DELETE CASCADE,
+    FOREIGN KEY (personaje_id) REFERENCES personajes_convocatoria(id) ON DELETE CASCADE
+);
