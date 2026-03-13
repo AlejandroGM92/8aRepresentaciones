@@ -168,7 +168,7 @@ function renderActores(actores) {
         <div class="actor-card">
             <div class="actor-photo">
                 <img src="${fotoSrc(a.foto_perfil)}" alt="${nombre}" onerror="this.src='${fotoSrc(null)}'">
-                ${a.is_admin ? '<span class="admin-badge">Admin</span>' : ''}
+                ${a.is_admin ? '<span class="admin-badge">Admin</span>' : a.is_casting ? '<span class="admin-badge" style="background:#1a6fb5">Dir. Casting</span>' : '<span class="admin-badge" style="background:#555">Artista</span>'}
                 ${noDisponibleHoy ? '<span class="admin-badge" style="background:#910909;top:auto;bottom:6px">No disponible</span>' : ''}
             </div>
             <div class="actor-body">

@@ -588,7 +588,7 @@ app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
         let query = `SELECT id, nombre, email, telefono, fecha_nacimiento, genero, altura, peso,
             color_ojos, color_cabello, talla_camiseta, talla_pantalon, talla_zapatos,
             biografia, habilidades, experiencia, formacion_artistica, redes_sociales, idiomas,
-            foto_perfil, fecha_registro, is_admin,
+            foto_perfil, fecha_registro, is_admin, is_casting,
             anio_inicio_experiencia, edad_aparente_min, edad_aparente_max,
             escenas_sexo, fechas_no_disponibles,
             ciudad_nacimiento, pais_nacimiento,
