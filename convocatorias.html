@@ -50,6 +50,62 @@
         .empty-conv { text-align: center; color: #aaa; padding: 40px; font-size: 15px; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         @media(max-width:600px){ .form-row { grid-template-columns: 1fr; } }
+
+        /* Nav link como botón rojo */
+        .nav-link-btn {
+            background: linear-gradient(135deg, #910909, #c92a2a);
+            color: #fff !important;
+            font-weight: 700;
+            padding: 8px 18px;
+            border-radius: 8px;
+        }
+        .nav-link-btn:hover {
+            background: #7a0808 !important;
+            color: #fff !important;
+        }
+
+        /* Modal textareas estilizados igual que inputs */
+        .modal-body .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+            resize: vertical;
+        }
+        .modal-body .form-group textarea:focus {
+            border-color: #910909;
+            box-shadow: 0 0 0 3px rgba(145,9,9,0.1);
+        }
+        .modal-body .form-group input,
+        .modal-body .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .modal-body .form-group input:focus,
+        .modal-body .form-group select:focus {
+            border-color: #910909;
+            box-shadow: 0 0 0 3px rgba(145,9,9,0.1);
+        }
+        .modal-body .form-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 5px;
+            display: block;
+        }
+        .modal-body .form-group {
+            margin-bottom: 16px;
+        }
     </style>
 </head>
 <body>
@@ -59,10 +115,10 @@
                 <img src="imagenes/LOGO 8A ROJO-SIN FONDO.png" alt="8a Representaciones">
             </div>
             <div class="nav-title">Convocatorias</div>
-            <div style="flex:1"></div>
-            <div class="nav-actions">
-                <a href="admin.html" class="nav-link">← Panel Admin</a>
-                <a href="#" class="nav-link" id="btnCerrarSesion" style="margin-left:12px">Cerrar Sesión</a>
+            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menú">☰</button>
+            <div class="nav-actions" id="navMenu">
+                <a href="admin.html" class="nav-link nav-link-btn">← Panel Admin</a>
+                <a href="#" class="nav-link nav-link-btn" id="btnCerrarSesion">Cerrar Sesión</a>
             </div>
         </div>
     </nav>

@@ -387,4 +387,16 @@ document.getElementById('btnCancelarLogout').addEventListener('click', () => {
 window.addEventListener('DOMContentLoaded', () => {
     if (!verificarAdmin()) return;
     cargarConvocatorias();
+
+    // Hamburger menu
+    const hamburger = document.getElementById('hamburgerBtn');
+    const navMenu = document.getElementById('navMenu');
+    if (hamburger && navMenu) {
+        hamburger.addEventListener('click', () => navMenu.classList.toggle('open'));
+        document.addEventListener('click', e => {
+            if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
+                navMenu.classList.remove('open');
+            }
+        });
+    }
 });

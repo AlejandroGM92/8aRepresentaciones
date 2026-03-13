@@ -727,3 +727,49 @@ body {
 }
 
 .btn-modal-confirm:hover { background: #e03040; }
+
+/* ====== ACENTOS ====== */
+.acento-ctrl {
+    padding: 10px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    background: white;
+}
+.acento-ctrl:focus {
+    border-color: #910909;
+    box-shadow: 0 0 0 3px rgba(145,9,9,0.1);
+}
+.acento-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px 4px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+.acento-tag.maneja {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+.acento-tag.no-maneja {
+    background: #fff0f0;
+    color: #c62828;
+}
+.acento-tag button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    color: inherit;
+    opacity: 0.6;
+    transition: opacity 0.15s;
+}
+.acento-tag button:hover { opacity: 1; }

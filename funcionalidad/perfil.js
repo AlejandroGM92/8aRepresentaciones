@@ -158,12 +158,11 @@ function poblarSelectAcentos() {
 function renderAcentosTags(arr, containerId, tipo) {
     const cont = document.getElementById(containerId);
     if (!cont) return;
-    const color = tipo === 'maneja' ? '#e6f4ea' : '#fde8e8';
-    const textColor = tipo === 'maneja' ? '#1d6f42' : '#910909';
+    const cls = tipo === 'maneja' ? 'maneja' : 'no-maneja';
     cont.innerHTML = arr.map((a, i) =>
-        `<span style="display:inline-flex;align-items:center;gap:5px;background:${color};color:${textColor};border-radius:20px;padding:4px 12px;font-size:13px;font-weight:500">
+        `<span class="acento-tag ${cls}">
             ${a.replace(/</g, '&lt;')}
-            <button type="button" onclick="eliminarAcento('${tipo}', ${i})" style="background:none;border:none;color:${textColor};cursor:pointer;font-size:14px;line-height:1;padding:0;opacity:.7">✕</button>
+            <button type="button" onclick="eliminarAcento('${tipo}', ${i})">✕</button>
         </span>`
     ).join('');
 }
