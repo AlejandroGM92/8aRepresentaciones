@@ -304,6 +304,11 @@ function mostrarModalVista(a) {
                 <p style="font-size:14px;color:#444;line-height:1.6">${a.biografia}</p>
             </div>` : ''}
         </div>
+            <div class="vista-section" id="seccionContratos_${a.id}">
+                <h4>Contratos Firmados</h4>
+                <div id="listaContratosAdmin_${a.id}"><span style="color:#aaa;font-size:13px">Cargando...</span></div>
+            </div>
+        </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="cerrarModal()">Cerrar</button>
             <button class="btn-excel" onclick="descargarExcel(${a.id}, '${(a.nombre||'actor').replace(/'/g,"\\'")}')">&#8595; Excel</button>
@@ -311,6 +316,30 @@ function mostrarModalVista(a) {
         </div>
     `;
     document.getElementById('modalOverlay').style.display = 'flex';
+
+    // Cargar contratos del actor
+    fetch(`${API_URL}/admin/actores/${a.id}/contratos`, { headers: { 'Authorization': `Bearer ${getToken()}` } })
+        .then(r => r.json())
+        .then(data => {
+            const cont = document.getElementById(`listaContratosAdmin_${a.id}`);
+            if (!cont) return;
+            if (!data.contratos || data.contratos.length === 0) {
+                cont.innerHTML = '<span style="color:#aaa;font-size:13px">Sin contratos subidos.</span>';
+                return;
+            }
+            cont.innerHTML = data.contratos.map(c => {
+                const fecha = new Date(c.fecha_subida).toLocaleDateString('es-CO', { day:'2-digit', month:'short', year:'numeric' });
+                return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#fafafa;border-radius:8px;margin-bottom:6px;font-size:13px">
+                    <span>📄 ${(c.nombre_archivo || 'contrato.pdf').replace(/</g,'&lt;')}</span>
+                    <span style="color:#aaa;font-size:11px;margin:0 12px">${fecha}</span>
+                    <a href="${c.url_contrato}" target="_blank" download class="btn-action btn-view" style="padding:4px 12px;font-size:12px;text-decoration:none">⬇ Descargar</a>
+                </div>`;
+            }).join('');
+        })
+        .catch(() => {
+            const cont = document.getElementById(`listaContratosAdmin_${a.id}`);
+            if (cont) cont.innerHTML = '<span style="color:#aaa;font-size:13px">Error al cargar contratos.</span>';
+        });
 }
 
 // ==================== EDITAR / CREAR ====================
