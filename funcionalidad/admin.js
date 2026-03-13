@@ -71,6 +71,9 @@ function getFiltros() {
         color_cabello:    document.getElementById('filtroColorCabello').value.trim(),
         escenas_sexo:     document.getElementById('filtroEscenasSexo').value,
         edad_aparente:    document.getElementById('filtroEdadAparente').value,
+        pais_nacimiento:  document.getElementById('filtroPais').value,
+        ciudad_nacimiento: document.getElementById('filtroCiudad').value.trim(),
+        acento:           document.getElementById('filtroAcento').value,
     };
 }
 
@@ -82,7 +85,8 @@ async function cargarActores(filtros = {}) {
     // Solo enviar al servidor los filtros que maneja SQL (no los client-side)
     const serverKeys = ['nombre','habilidades','idioma','nivel_idioma','anios_exp',
                         'edad_min','edad_max','altura_min','altura_max',
-                        'color_ojos','color_cabello','escenas_sexo'];
+                        'color_ojos','color_cabello','escenas_sexo',
+                        'pais_nacimiento','ciudad_nacimiento'];
     serverKeys.forEach(k => { if (filtros[k]) params.append(k, filtros[k]); });
     try {
         const res = await fetch(`${API_URL}/admin/actores?${params}`, {
@@ -102,6 +106,16 @@ async function cargarActores(filtros = {}) {
                 const eMin = min || 0;
                 const eMax = max || 999;
                 return edadAparente >= eMin && edadAparente <= eMax;
+            });
+        }
+
+        // Filtro client-side: acento que maneja
+        if (filtros.acento) {
+            actores = actores.filter(a => {
+                try {
+                    const acentos = JSON.parse(a.acentos_maneja || '[]');
+                    return acentos.includes(filtros.acento);
+                } catch { return false; }
             });
         }
 
@@ -491,6 +505,8 @@ document.getElementById('formFiltros').addEventListener('submit', async function
 
 document.getElementById('btnLimpiarFiltros').addEventListener('click', async () => {
     document.getElementById('formFiltros').reset();
+    document.getElementById('filtroCiudad').value = '';
+    document.getElementById('filtroAcento').value = '';
     filtroFechasActivo = false;
     const actores = await cargarActores();
     renderActores(actores);
@@ -526,3 +542,18 @@ window.addEventListener('DOMContentLoaded', async () => {
     cargarNotificaciones();
     setInterval(cargarNotificaciones, 30000);
 });
+
+// ==================== HAMBURGER MENU ====================
+const hamburgerBtn = document.getElementById('hamburgerBtn');
+const navMenu = document.getElementById('navMenu');
+if (hamburgerBtn && navMenu) {
+    hamburgerBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        navMenu.classList.toggle('open');
+    });
+    document.addEventListener('click', e => {
+        if (!navMenu.contains(e.target) && e.target !== hamburgerBtn) {
+            navMenu.classList.remove('open');
+        }
+    });
+}

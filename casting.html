@@ -26,7 +26,8 @@
             <div class="nav-title">Portal Director de Casting</div>
             <div style="flex:1"></div>
             <span class="casting-badge">Director de Casting</span>
-            <div class="nav-actions" style="margin-left:15px">
+            <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menú">☰</button>
+            <div class="nav-actions" id="navMenu">
                 <a href="#" class="nav-link" id="btnCerrarSesion">Cerrar Sesión</a>
             </div>
         </div>
@@ -152,6 +153,51 @@
                             <option value="Cuba">Cuba</option>
                             <option value="Puerto Rico">Puerto Rico</option>
                             <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroCiudad">Ciudad de nacimiento</label>
+                        <input type="text" id="filtroCiudad" placeholder="Ej: Bogotá, Medellín...">
+                    </div>
+                    <div class="form-group">
+                        <label for="filtroAcento">Acento que maneja</label>
+                        <select id="filtroAcento">
+                            <option value="">Todos los acentos</option>
+                            <option value="Español neutro (Latinoamérica)">Español neutro (Latinoamérica)</option>
+                            <option value="Mexicano">Mexicano</option>
+                            <option value="Colombiano (bogotano/neutro)">Colombiano (bogotano/neutro)</option>
+                            <option value="Paisa (antioqueño)">Paisa (antioqueño)</option>
+                            <option value="Costeño (colombiano)">Costeño (colombiano)</option>
+                            <option value="Caleño">Caleño</option>
+                            <option value="Venezolano">Venezolano</option>
+                            <option value="Argentino / Rioplatense">Argentino / Rioplatense</option>
+                            <option value="Chileno">Chileno</option>
+                            <option value="Peruano">Peruano</option>
+                            <option value="Cubano">Cubano</option>
+                            <option value="Puertorriqueño">Puertorriqueño</option>
+                            <option value="Dominicano">Dominicano</option>
+                            <option value="Guatemalteco">Guatemalteco</option>
+                            <option value="Ecuatoriano">Ecuatoriano</option>
+                            <option value="Boliviano">Boliviano</option>
+                            <option value="Paraguayo">Paraguayo</option>
+                            <option value="Uruguayo">Uruguayo</option>
+                            <option value="Hondureño">Hondureño</option>
+                            <option value="Salvadoreño">Salvadoreño</option>
+                            <option value="Nicaragüense">Nicaragüense</option>
+                            <option value="Costarricense">Costarricense</option>
+                            <option value="Panameño">Panameño</option>
+                            <option value="Español peninsular (castellano)">Español peninsular (castellano)</option>
+                            <option value="Andaluz">Andaluz</option>
+                            <option value="Canario">Canario</option>
+                            <option value="Americano (inglés)">Americano (inglés)</option>
+                            <option value="Británico (inglés)">Británico (inglés)</option>
+                            <option value="Francés">Francés</option>
+                            <option value="Italiano">Italiano</option>
+                            <option value="Portugués / Brasileño">Portugués / Brasileño</option>
+                            <option value="Alemán">Alemán</option>
+                            <option value="Ruso">Ruso</option>
+                            <option value="Japonés">Japonés</option>
+                            <option value="Chino">Chino</option>
                         </select>
                     </div>
                 </div>

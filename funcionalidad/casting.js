@@ -51,19 +51,22 @@ let filtroFechasActivo = false;
 
 function getFiltros() {
     return {
-        nombre:        document.getElementById('filtroNombre').value.trim(),
-        habilidades:   document.getElementById('filtroHabilidades').value.trim(),
-        idioma:        document.getElementById('filtroIdioma').value,
-        nivel_idioma:  document.getElementById('filtroNivelIdioma').value,
-        anios_exp:     document.getElementById('filtroAniosExp').value,
-        edad_min:      document.getElementById('filtroEdadMin').value,
-        edad_max:      document.getElementById('filtroEdadMax').value,
-        altura_min:    document.getElementById('filtroAlturaMin').value,
-        altura_max:    document.getElementById('filtroAlturaMax').value,
-        color_ojos:    document.getElementById('filtroColorOjos').value.trim(),
-        color_cabello: document.getElementById('filtroColorCabello').value.trim(),
-        escenas_sexo:  document.getElementById('filtroEscenasSexo').value,
-        edad_aparente: document.getElementById('filtroEdadAparente').value,
+        nombre:           document.getElementById('filtroNombre').value.trim(),
+        habilidades:      document.getElementById('filtroHabilidades').value.trim(),
+        idioma:           document.getElementById('filtroIdioma').value,
+        nivel_idioma:     document.getElementById('filtroNivelIdioma').value,
+        anios_exp:        document.getElementById('filtroAniosExp').value,
+        edad_min:         document.getElementById('filtroEdadMin').value,
+        edad_max:         document.getElementById('filtroEdadMax').value,
+        altura_min:       document.getElementById('filtroAlturaMin').value,
+        altura_max:       document.getElementById('filtroAlturaMax').value,
+        color_ojos:       document.getElementById('filtroColorOjos').value.trim(),
+        color_cabello:    document.getElementById('filtroColorCabello').value.trim(),
+        escenas_sexo:     document.getElementById('filtroEscenasSexo').value,
+        edad_aparente:    document.getElementById('filtroEdadAparente').value,
+        pais_nacimiento:  document.getElementById('filtroPais').value,
+        ciudad_nacimiento: document.getElementById('filtroCiudad').value.trim(),
+        acento:           document.getElementById('filtroAcento').value,
     };
 }
 
@@ -74,7 +77,8 @@ async function cargarActores(filtros = {}) {
     const params = new URLSearchParams();
     const serverKeys = ['nombre','habilidades','idioma','nivel_idioma','anios_exp',
                         'edad_min','edad_max','altura_min','altura_max',
-                        'color_ojos','color_cabello','escenas_sexo'];
+                        'color_ojos','color_cabello','escenas_sexo',
+                        'pais_nacimiento','ciudad_nacimiento'];
     serverKeys.forEach(k => { if (filtros[k]) params.append(k, filtros[k]); });
     try {
         const res = await fetch(`${API_URL}/casting/actores?${params}`, {
@@ -92,6 +96,16 @@ async function cargarActores(filtros = {}) {
                 const max = a.edad_aparente_max;
                 if (!min && !max) return true;
                 return edadAparente >= (min || 0) && edadAparente <= (max || 999);
+            });
+        }
+
+        // Filtro client-side: acento que maneja
+        if (filtros.acento) {
+            actores = actores.filter(a => {
+                try {
+                    const acentos = JSON.parse(a.acentos_maneja || '[]');
+                    return acentos.includes(filtros.acento);
+                } catch { return false; }
             });
         }
 
@@ -326,6 +340,8 @@ document.getElementById('formFiltros').addEventListener('submit', async function
 
 document.getElementById('btnLimpiarFiltros').addEventListener('click', async () => {
     document.getElementById('formFiltros').reset();
+    document.getElementById('filtroCiudad').value = '';
+    document.getElementById('filtroAcento').value = '';
     filtroFechasActivo = false;
     const actores = await cargarActores();
     renderActores(actores);
@@ -359,3 +375,18 @@ window.addEventListener('DOMContentLoaded', async () => {
     const actores = await cargarActores();
     renderActores(actores);
 });
+
+// ==================== HAMBURGER MENU ====================
+const hamburgerBtn = document.getElementById('hamburgerBtn');
+const navMenu = document.getElementById('navMenu');
+if (hamburgerBtn && navMenu) {
+    hamburgerBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        navMenu.classList.toggle('open');
+    });
+    document.addEventListener('click', e => {
+        if (!navMenu.contains(e.target) && e.target !== hamburgerBtn) {
+            navMenu.classList.remove('open');
+        }
+    });
+}

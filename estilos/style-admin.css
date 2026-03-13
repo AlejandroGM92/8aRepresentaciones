@@ -708,3 +708,62 @@ body {
 @media (max-width: 480px) {
     .filters-grid { grid-template-columns: 1fr; }
 }
+
+/* ====== HAMBURGER MENU ====== */
+.hamburger-btn {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 22px;
+    line-height: 1;
+    color: #333;
+    transition: background .2s;
+}
+.hamburger-btn:hover { background: #f0f0f0; }
+
+@media (max-width: 768px) {
+    .hamburger-btn { display: block; }
+
+    .nav-actions {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: 0;
+        background: white;
+        box-shadow: 0 4px 12px rgba(0,0,0,.12);
+        padding: 12px 20px;
+        flex-direction: column;
+        gap: 6px;
+        z-index: 999;
+    }
+    .nav-actions.open {
+        display: flex;
+    }
+    .nav-actions .nav-link {
+        display: block;
+        padding: 10px 14px;
+        border-radius: 8px;
+        margin: 0;
+    }
+    .nav-actions .casting-badge-nav {
+        display: block;
+        padding: 8px 14px;
+        font-size: 12px;
+        color: #555;
+    }
+    .nav-notifications {
+        margin-left: auto;
+    }
+    .nav-container {
+        position: relative;
+        flex-wrap: wrap;
+    }
+    .nav-title {
+        font-size: 14px;
+    }
+    .nav-logo img { height: 36px; }
+}

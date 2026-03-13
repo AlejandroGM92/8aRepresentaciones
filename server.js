@@ -587,7 +587,7 @@ app.post('/api/auth/microsoft', async (req, res) => {
 app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
     try {
         const { nombre, edad_min, edad_max, habilidades, idioma, nivel_idioma,
-                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, pais_nacimiento } = req.query;
+                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, pais_nacimiento, ciudad_nacimiento } = req.query;
 
         let query = `SELECT id, nombre, email, telefono, fecha_nacimiento, genero, altura, peso,
             color_ojos, color_cabello, talla_camiseta, talla_pantalon, talla_zapatos,
@@ -623,6 +623,7 @@ app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
             }
         }
         if (pais_nacimiento) { query += ' AND pais_nacimiento = ?'; params.push(pais_nacimiento); }
+        if (ciudad_nacimiento) { query += ' AND ciudad_nacimiento LIKE ?'; params.push(`%${ciudad_nacimiento}%`); }
 
         query += ' ORDER BY nombre ASC';
 
@@ -852,7 +853,7 @@ app.delete('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
 app.get('/api/casting/actores', verificarCasting, async (req, res) => {
     try {
         const { nombre, edad_min, edad_max, habilidades, idioma, nivel_idioma,
-                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, pais_nacimiento } = req.query;
+                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, pais_nacimiento, ciudad_nacimiento } = req.query;
 
         let query = `SELECT id, nombre, fecha_nacimiento, genero, altura, peso,
             color_ojos, color_cabello, talla_camiseta, talla_pantalon, talla_zapatos,
@@ -888,6 +889,7 @@ app.get('/api/casting/actores', verificarCasting, async (req, res) => {
             }
         }
         if (pais_nacimiento) { query += ' AND pais_nacimiento = ?'; params.push(pais_nacimiento); }
+        if (ciudad_nacimiento) { query += ' AND ciudad_nacimiento LIKE ?'; params.push(`%${ciudad_nacimiento}%`); }
 
         query += ' ORDER BY nombre ASC';
 
