@@ -276,7 +276,8 @@ app.get('/api/perfil', verificarToken, async (req, res) => {
              edad_aparente_min, edad_aparente_max,
              tiene_manager, nombre_manager, fechas_no_disponibles,
              anio_inicio_experiencia, escenas_sexo, link_reel,
-             ciudad_nacimiento, pais_nacimiento, puede_subir_contrato
+             ciudad_nacimiento, pais_nacimiento, puede_subir_contrato,
+             acentos_maneja, acentos_no_maneja
              FROM actores WHERE id = ?`,
             [req.userId]
         );
@@ -313,7 +314,8 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
             edad_aparente_min, edad_aparente_max,
             tiene_manager, nombre_manager, fechas_no_disponibles,
             anio_inicio_experiencia, escenas_sexo, link_reel,
-            ciudad_nacimiento, pais_nacimiento
+            ciudad_nacimiento, pais_nacimiento,
+            acentos_maneja, acentos_no_maneja
         } = req.body;
 
         await promisePool.query(
@@ -326,7 +328,8 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
              edad_aparente_min = ?, edad_aparente_max = ?,
              tiene_manager = ?, nombre_manager = ?, fechas_no_disponibles = ?,
              anio_inicio_experiencia = ?, escenas_sexo = ?, link_reel = ?,
-             ciudad_nacimiento = ?, pais_nacimiento = ?
+             ciudad_nacimiento = ?, pais_nacimiento = ?,
+             acentos_maneja = ?, acentos_no_maneja = ?
              WHERE id = ?`,
             [nombre, telefono || null, fecha_nacimiento || null, genero || null,
              altura || null, peso || null, color_ojos || null, color_cabello || null,
@@ -340,6 +343,7 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
              escenas_sexo != null ? escenas_sexo : null,
              link_reel || null,
              ciudad_nacimiento || null, pais_nacimiento || null,
+             acentos_maneja || null, acentos_no_maneja || null,
              req.userId]
         );
 
@@ -1195,11 +1199,11 @@ app.get('/api/admin/convocatorias', verificarAdmin, async (req, res) => {
 // Admin: crear convocatoria
 app.post('/api/admin/convocatorias', verificarAdmin, async (req, res) => {
     try {
-        const { titulo, descripcion, requisitos, fecha_limite } = req.body;
+        const { titulo, descripcion, requisitos, fecha_limite, filtro_genero, filtro_acento } = req.body;
         if (!titulo) return res.status(400).json({ error: 'El título es requerido' });
         const [result] = await promisePool.query(
-            'INSERT INTO convocatorias (titulo, descripcion, requisitos, fecha_limite) VALUES (?, ?, ?, ?)',
-            [titulo, descripcion || null, requisitos || null, fecha_limite || null]
+            'INSERT INTO convocatorias (titulo, descripcion, requisitos, fecha_limite, filtro_genero, filtro_acento) VALUES (?, ?, ?, ?, ?, ?)',
+            [titulo, descripcion || null, requisitos || null, fecha_limite || null, filtro_genero || null, filtro_acento || null]
         );
         res.status(201).json({ mensaje: 'Convocatoria creada', id: result.insertId });
     } catch (error) {
@@ -1210,10 +1214,10 @@ app.post('/api/admin/convocatorias', verificarAdmin, async (req, res) => {
 // Admin: editar convocatoria
 app.put('/api/admin/convocatorias/:id', verificarAdmin, async (req, res) => {
     try {
-        const { titulo, descripcion, requisitos, fecha_limite } = req.body;
+        const { titulo, descripcion, requisitos, fecha_limite, filtro_genero, filtro_acento } = req.body;
         await promisePool.query(
-            'UPDATE convocatorias SET titulo=?, descripcion=?, requisitos=?, fecha_limite=? WHERE id=?',
-            [titulo, descripcion || null, requisitos || null, fecha_limite || null, req.params.id]
+            'UPDATE convocatorias SET titulo=?, descripcion=?, requisitos=?, fecha_limite=?, filtro_genero=?, filtro_acento=? WHERE id=?',
+            [titulo, descripcion || null, requisitos || null, fecha_limite || null, filtro_genero || null, filtro_acento || null, req.params.id]
         );
         res.json({ mensaje: 'Convocatoria actualizada' });
     } catch (error) {
@@ -1237,18 +1241,30 @@ app.post('/api/admin/convocatorias/:id/publicar', verificarAdmin, async (req, re
         if (notificar) {
             // Obtener actores y filtrar los que están disponibles hoy
             const [todosActores] = await promisePool.query(
-                'SELECT nombre, email, fechas_no_disponibles FROM actores WHERE is_admin = 0 AND is_casting = 0 AND email IS NOT NULL'
+                'SELECT nombre, email, genero, acentos_maneja, fechas_no_disponibles FROM actores WHERE is_admin = 0 AND is_casting = 0 AND email IS NOT NULL'
             );
             const hoy = new Date().toISOString().split('T')[0];
             const actores = todosActores.filter(a => {
                 try {
                     const fechas = JSON.parse(a.fechas_no_disponibles || '[]');
-                    return !fechas.some(f => {
+                    if (fechas.some(f => {
                         const ini = f.inicio || f.desde || '';
                         const fin = f.fin || f.hasta || '';
                         return ini && fin && hoy >= ini && hoy <= fin;
-                    });
-                } catch { return true; }
+                    })) return false;
+                } catch {}
+                // Filtrar por género si la convocatoria lo especifica
+                if (conv.filtro_genero && conv.filtro_genero !== 'todos') {
+                    if ((a.genero || '').toLowerCase() !== conv.filtro_genero.toLowerCase()) return false;
+                }
+                // Filtrar por acento si la convocatoria lo especifica
+                if (conv.filtro_acento) {
+                    try {
+                        const acentos = JSON.parse(a.acentos_maneja || '[]');
+                        if (!acentos.includes(conv.filtro_acento)) return false;
+                    } catch { return false; }
+                }
+                return true;
             });
             mailer.enviarConvocatoria(actores, conv).catch(e => console.error('Mailer convocatoria:', e));
             res.json({ mensaje: `Convocatoria publicada. Se notificará a ${actores.length} actores disponibles.` });

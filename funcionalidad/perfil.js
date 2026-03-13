@@ -44,6 +44,23 @@ const HABILIDADES_LISTA = [
 let habilidadesActivas = [];
 let otrasHabilidades = []; // habilidades personalizadas (tipo "Otro: X")
 
+const ACENTOS_LISTA = [
+    // Latinoamérica
+    'Español neutro (Latinoamérica)', 'Mexicano', 'Colombiano (bogotano/neutro)',
+    'Paisa (antioqueño)', 'Costeño (colombiano)', 'Caleño', 'Venezolano',
+    'Argentino / Rioplatense', 'Chileno', 'Peruano', 'Cubano', 'Puertorriqueño',
+    'Dominicano', 'Guatemalteco', 'Ecuatoriano', 'Boliviano', 'Paraguayo',
+    'Uruguayo', 'Hondureño', 'Salvadoreño', 'Nicaragüense', 'Costarricense', 'Panameño',
+    // España
+    'Español peninsular (castellano)', 'Andaluz', 'Canario',
+    // Otros idiomas
+    'Americano (inglés)', 'Británico (inglés)', 'Francés', 'Italiano',
+    'Portugués / Brasileño', 'Alemán', 'Ruso', 'Japonés', 'Chino'
+];
+
+let acentosManejaArr = [];
+let acentosNoManejaArr = [];
+
 function renderHabilidades() {
     const grid = document.getElementById('habilidadesGrid');
     // Excluir 'Otro' del grid de checkboxes
@@ -117,6 +134,72 @@ function getHabilidadesJSON() {
         ...otrasHabilidades.map(h => `Otro: ${h}`)
     ];
     return arr.length ? JSON.stringify(arr) : null;
+}
+
+// ==================== ACENTOS ====================
+
+function poblarSelectAcentos() {
+    ['selectAcentoManeja', 'selectAcentoNoManeja'].forEach(selId => {
+        const sel = document.getElementById(selId);
+        if (!sel) return;
+        // Keep the first option
+        const first = sel.options[0];
+        sel.innerHTML = '';
+        sel.appendChild(first);
+        ACENTOS_LISTA.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a;
+            opt.textContent = a;
+            sel.appendChild(opt);
+        });
+    });
+}
+
+function renderAcentosTags(arr, containerId, tipo) {
+    const cont = document.getElementById(containerId);
+    if (!cont) return;
+    const color = tipo === 'maneja' ? '#e6f4ea' : '#fde8e8';
+    const textColor = tipo === 'maneja' ? '#1d6f42' : '#910909';
+    cont.innerHTML = arr.map((a, i) =>
+        `<span style="display:inline-flex;align-items:center;gap:5px;background:${color};color:${textColor};border-radius:20px;padding:4px 12px;font-size:13px;font-weight:500">
+            ${a.replace(/</g, '&lt;')}
+            <button type="button" onclick="eliminarAcento('${tipo}', ${i})" style="background:none;border:none;color:${textColor};cursor:pointer;font-size:14px;line-height:1;padding:0;opacity:.7">✕</button>
+        </span>`
+    ).join('');
+}
+
+window.eliminarAcento = function(tipo, i) {
+    if (tipo === 'maneja') { acentosManejaArr.splice(i, 1); renderAcentosTags(acentosManejaArr, 'acentosManejaTagsContainer', 'maneja'); }
+    else { acentosNoManejaArr.splice(i, 1); renderAcentosTags(acentosNoManejaArr, 'acentosNoManejaTagsContainer', 'nomaneja'); }
+};
+
+function agregarAcentoDesdeSelect(tipo) {
+    const selId = tipo === 'maneja' ? 'selectAcentoManeja' : 'selectAcentoNoManeja';
+    const sel = document.getElementById(selId);
+    const val = sel ? sel.value.trim() : '';
+    if (!val) return;
+    const arr = tipo === 'maneja' ? acentosManejaArr : acentosNoManejaArr;
+    const cont = tipo === 'maneja' ? 'acentosManejaTagsContainer' : 'acentosNoManejaTagsContainer';
+    if (!arr.includes(val)) { arr.push(val); renderAcentosTags(arr, cont, tipo === 'maneja' ? 'maneja' : 'nomaneja'); }
+    sel.value = '';
+}
+
+function agregarAcentoOtro(tipo) {
+    const inputId = tipo === 'maneja' ? 'acentoManejaOtroTexto' : 'acentoNoManejaOtroTexto';
+    const input = document.getElementById(inputId);
+    const val = (input ? input.value : '').trim();
+    if (!val) return;
+    const arr = tipo === 'maneja' ? acentosManejaArr : acentosNoManejaArr;
+    const cont = tipo === 'maneja' ? 'acentosManejaTagsContainer' : 'acentosNoManejaTagsContainer';
+    if (!arr.includes(val)) { arr.push(val); renderAcentosTags(arr, cont, tipo === 'maneja' ? 'maneja' : 'nomaneja'); }
+    if (input) { input.value = ''; input.focus(); }
+}
+
+function cargarAcentos(perfil) {
+    try { acentosManejaArr = JSON.parse(perfil.acentos_maneja || '[]') || []; } catch { acentosManejaArr = []; }
+    try { acentosNoManejaArr = JSON.parse(perfil.acentos_no_maneja || '[]') || []; } catch { acentosNoManejaArr = []; }
+    renderAcentosTags(acentosManejaArr, 'acentosManejaTagsContainer', 'maneja');
+    renderAcentosTags(acentosNoManejaArr, 'acentosNoManejaTagsContainer', 'nomaneja');
 }
 
 // ==================== FECHAS NO DISPONIBLES ====================
@@ -439,6 +522,9 @@ function llenarFormulario(perfil) {
     cargarHabilidades(perfil.habilidades);
     renderHabilidades();
 
+    // Acentos
+    cargarAcentos(perfil);
+
     // Año inicio experiencia artística
     document.getElementById('anioInicioExperiencia').value = perfil.anio_inicio_experiencia || '';
 
@@ -482,6 +568,9 @@ function buildSaveBody() {
         escenas_sexo:      document.getElementById('escenasSexo').value !== '' ? parseInt(document.getElementById('escenasSexo').value) : null,
         // Habilidades (JSON array)
         habilidades:       getHabilidadesJSON(),
+        // Acentos
+        acentos_maneja: acentosManejaArr.length ? JSON.stringify(acentosManejaArr) : null,
+        acentos_no_maneja: acentosNoManejaArr.length ? JSON.stringify(acentosNoManejaArr) : null,
         // Dinámicos
         experiencia:         JSON.stringify(experiencias),
         formacion_artistica: JSON.stringify(formaciones),
@@ -802,6 +891,15 @@ window.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') { e.preventDefault(); agregarOtraHab(); }
     });
     document.getElementById('btnAgregarOtroHab').addEventListener('click', agregarOtraHab);
+
+    // Acentos
+    poblarSelectAcentos();
+    document.getElementById('btnAgregarAcentoManeja').addEventListener('click', () => agregarAcentoDesdeSelect('maneja'));
+    document.getElementById('btnAgregarAcentoNoManeja').addEventListener('click', () => agregarAcentoDesdeSelect('nomaneja'));
+    document.getElementById('btnAgregarAcentoManejaOtro').addEventListener('click', () => agregarAcentoOtro('maneja'));
+    document.getElementById('btnAgregarAcentoNoManejaOtro').addEventListener('click', () => agregarAcentoOtro('nomaneja'));
+    document.getElementById('acentoManejaOtroTexto').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); agregarAcentoOtro('maneja'); } });
+    document.getElementById('acentoNoManejaOtroTexto').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); agregarAcentoOtro('nomaneja'); } });
 
     // Cargar perfil desde API
     cargarPerfil();

@@ -121,3 +121,13 @@ CREATE TABLE IF NOT EXISTS postulaciones (
     FOREIGN KEY (convocatoria_id) REFERENCES convocatorias(id) ON DELETE CASCADE,
     FOREIGN KEY (personaje_id) REFERENCES personajes_convocatoria(id) ON DELETE CASCADE
 );
+
+-- Nuevas columnas para acentos del actor
+ALTER TABLE actores
+  ADD COLUMN acentos_maneja JSON NULL,
+  ADD COLUMN acentos_no_maneja JSON NULL;
+
+-- Nuevas columnas de filtro en convocatorias
+ALTER TABLE convocatorias
+  ADD COLUMN filtro_genero VARCHAR(30) NULL,
+  ADD COLUMN filtro_acento VARCHAR(100) NULL;

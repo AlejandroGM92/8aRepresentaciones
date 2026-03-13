@@ -53,6 +53,7 @@ function renderConvocatorias(lista) {
             </div>
             <div class="conv-meta">${fecha}</div>
             ${fechaLimite}
+            ${(c.filtro_genero || c.filtro_acento) ? `<div style="font-size:12px;color:#555;margin-bottom:8px">🎯 Filtro: ${[c.filtro_genero ? `Género: ${c.filtro_genero}` : '', c.filtro_acento ? `Acento: ${c.filtro_acento}` : ''].filter(Boolean).join(' · ')}</div>` : ''}
             ${desc ? `<p class="conv-desc">${desc}</p>` : ''}
             ${req ? `<div class="conv-req"><strong>Requisitos:</strong><br>${req}</div>` : ''}
             <div class="conv-actions">
@@ -132,6 +133,8 @@ window.abrirEditar = async function(id) {
     document.getElementById('convDesc').value = c.descripcion || '';
     document.getElementById('convReq').value = c.requisitos || '';
     document.getElementById('convFecha').value = c.fecha_limite ? c.fecha_limite.split('T')[0] : '';
+    document.getElementById('convFiltroGenero').value = c.filtro_genero || '';
+    document.getElementById('convFiltroAcento').value = c.filtro_acento || '';
     personajesActuales = (dataPj.personajes || []).map(p => ({ nombre: p.nombre, descripcion: p.descripcion || '' }));
     renderPersonajesForm(personajesActuales);
     document.getElementById('modalTitulo').textContent = 'Editar Convocatoria';
@@ -147,7 +150,9 @@ document.getElementById('btnGuardarConv').addEventListener('click', async () => 
         titulo,
         descripcion: document.getElementById('convDesc').value.trim(),
         requisitos: document.getElementById('convReq').value.trim(),
-        fecha_limite: document.getElementById('convFecha').value || null
+        fecha_limite: document.getElementById('convFecha').value || null,
+        filtro_genero: document.getElementById('convFiltroGenero').value || null,
+        filtro_acento: document.getElementById('convFiltroAcento').value || null
     };
 
     const url = id ? `${API_URL}/admin/convocatorias/${id}` : `${API_URL}/admin/convocatorias`;
@@ -180,6 +185,8 @@ document.getElementById('btnGuardarConv').addEventListener('click', async () => 
 
 window.cerrarModal = function() {
     document.getElementById('modalOverlay').style.display = 'none';
+    document.getElementById('convFiltroGenero').value = '';
+    document.getElementById('convFiltroAcento').value = '';
 };
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) cerrarModal(); });
 
