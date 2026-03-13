@@ -1021,6 +1021,25 @@ document.getElementById('btnCancelarLogout') && document.getElementById('btnCanc
     document.getElementById('logoutOverlay').style.display = 'none';
 });
 
+document.getElementById('btnCerrarSesion') && document.getElementById('btnCerrarSesion').addEventListener('click', function(e) {
+    e.preventDefault();
+    document.getElementById('logoutOverlay').style.display = 'flex';
+});
+
 // ==================== INIT ====================
 
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('DOMContentLoaded', () => {
+    init();
+
+    // Hamburger menu
+    const hamburger = document.getElementById('hamburgerBtn');
+    const navMenu = document.getElementById('navMenu');
+    if (hamburger && navMenu) {
+        hamburger.addEventListener('click', () => navMenu.classList.toggle('open'));
+        document.addEventListener('click', e => {
+            if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
+                navMenu.classList.remove('open');
+            }
+        });
+    }
+});
