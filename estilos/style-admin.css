@@ -709,6 +709,19 @@ body {
     .filters-grid { grid-template-columns: 1fr; }
 }
 
+/* Nav link como botón rojo */
+.nav-link-btn {
+    background: linear-gradient(135deg, #910909, #c92a2a);
+    color: #fff !important;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 8px;
+}
+.nav-link-btn:hover {
+    background: #7a0808 !important;
+    color: #fff !important;
+}
+
 /* ====== ACENTOS ====== */
 .acento-ctrl {
     padding: 10px 12px;
