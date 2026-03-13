@@ -14,6 +14,24 @@ function parseJSON(str, fallback) {
     catch { return fallback; }
 }
 
+function esc(s) {
+    if (s == null) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function safeUrl(url) {
+    if (!url) return '#';
+    try {
+        const u = new URL(url);
+        return (u.protocol === 'http:' || u.protocol === 'https:') ? url : '#';
+    } catch { return '#'; }
+}
+
 function mostrarNotificacion(mensaje, tipo = 'success') {
     const n = document.getElementById('notification');
     n.textContent = mensaje;
@@ -146,8 +164,8 @@ function renderActores(actores) {
                 return Array.isArray(h) ? h : (a.habilidades ? [a.habilidades] : []);
             } catch { return a.habilidades ? [a.habilidades] : []; }
         })();
-        const fisico = [a.altura ? a.altura + ' cm' : null, a.color_ojos || null].filter(Boolean);
-        const nombre = (a.nombre || '').replace(/'/g, "\\'");
+        const fisico = [a.altura ? a.altura + ' cm' : null, a.color_ojos ? esc(a.color_ojos) : null].filter(Boolean);
+        const nombre = esc(a.nombre || '');
 
         const fechasND = parseJSON(a.fechas_no_disponibles, []);
         const hoy = new Date().toISOString().split('T')[0];
@@ -175,11 +193,11 @@ function renderActores(actores) {
                 ${noDisponibleHoy ? '<span class="admin-badge" style="background:#910909;top:auto;bottom:6px">No disponible</span>' : ''}
             </div>
             <div class="actor-body">
-                <h3 class="actor-name">${a.nombre || '—'}</h3>
+                <h3 class="actor-name">${nombre || '—'}</h3>
                 ${edad ? `<p class="actor-age">${edad}${edadAp ? ' · ' + edadAp : ''}</p>` : (edadAp ? `<p class="actor-age">${edadAp}</p>` : '')}
                 ${fisico.length ? `<div class="actor-tags">${fisico.map(t => `<span class="tag tag-talla">${t}</span>`).join('')}</div>` : ''}
-                ${idiomasArr.length ? `<div class="actor-tags">${idiomasArr.slice(0,3).map(i => `<span class="tag tag-idioma">${i}</span>`).join('')}</div>` : ''}
-                ${habArr.length ? `<div class="actor-tags">${habArr.slice(0,2).map(h => `<span class="tag tag-exp">${h}</span>`).join('')}</div>` : ''}
+                ${idiomasArr.length ? `<div class="actor-tags">${idiomasArr.slice(0,3).map(i => `<span class="tag tag-idioma">${esc(i)}</span>`).join('')}</div>` : ''}
+                ${habArr.length ? `<div class="actor-tags">${habArr.slice(0,2).map(h => `<span class="tag tag-exp">${esc(h)}</span>`).join('')}</div>` : ''}
                 ${fechasNDHTML}
             </div>
             <div class="actor-actions">
@@ -227,13 +245,13 @@ function mostrarModalVista(a, fotos) {
         <div class="modal-body">
             <div class="perfil-vista">
                 <div class="perfil-vista-foto">
-                    <img src="${fotoSrc(a.foto_perfil)}" alt="${a.nombre}" onerror="this.src='${fotoSrc(null)}'">
+                    <img src="${fotoSrc(a.foto_perfil)}" alt="${esc(a.nombre)}" onerror="this.src='${fotoSrc(null)}'">
                 </div>
                 <div class="perfil-vista-info">
-                    <h3>${a.nombre || '—'}</h3>
+                    <h3>${esc(a.nombre) || '—'}</h3>
                     ${edad ? `<p class="edad-email">${edad}</p>` : ''}
                     <div class="vista-tags">
-                        ${a.genero ? `<span class="tag tag-talla">${a.genero}</span>` : ''}
+                        ${a.genero ? `<span class="tag tag-talla">${esc(a.genero)}</span>` : ''}
                     </div>
                 </div>
             </div>
@@ -241,16 +259,16 @@ function mostrarModalVista(a, fotos) {
             <div class="vista-section">
                 <h4>Información Personal</h4>
                 <div class="vista-grid">
-                    <div class="vista-item"><label>Fecha Nac.</label><span>${fecha}</span></div>
-                    <div class="vista-item"><label>País</label><span>${a.pais_nacimiento || '—'}</span></div>
-                    <div class="vista-item"><label>Ciudad</label><span>${a.ciudad_nacimiento || '—'}</span></div>
+                    <div class="vista-item"><label>Fecha Nac.</label><span>${esc(fecha)}</span></div>
+                    <div class="vista-item"><label>País</label><span>${esc(a.pais_nacimiento) || '—'}</span></div>
+                    <div class="vista-item"><label>Ciudad</label><span>${esc(a.ciudad_nacimiento) || '—'}</span></div>
                     <div class="vista-item"><label>Altura</label><span>${a.altura ? a.altura + ' cm' : '—'}</span></div>
                     <div class="vista-item"><label>Peso</label><span>${a.peso ? a.peso + ' kg' : '—'}</span></div>
-                    <div class="vista-item"><label>Ojos</label><span>${a.color_ojos || '—'}</span></div>
-                    <div class="vista-item"><label>Cabello</label><span>${a.color_cabello || '—'}</span></div>
-                    <div class="vista-item"><label>Edad aparente</label><span>${edadAp}</span></div>
+                    <div class="vista-item"><label>Ojos</label><span>${esc(a.color_ojos) || '—'}</span></div>
+                    <div class="vista-item"><label>Cabello</label><span>${esc(a.color_cabello) || '—'}</span></div>
+                    <div class="vista-item"><label>Edad aparente</label><span>${esc(edadAp)}</span></div>
                     <div class="vista-item"><label>Escenas sexo</label><span>${a.escenas_sexo === 1 ? 'Sí' : a.escenas_sexo === 0 ? 'No' : '—'}</span></div>
-                    ${a.link_reel ? `<div class="vista-item" style="grid-column:1/-1"><label>Reel</label><a href="${a.link_reel}" target="_blank" style="color:#910909;font-size:13px">${a.link_reel}</a></div>` : ''}
+                    ${a.link_reel ? `<div class="vista-item" style="grid-column:1/-1"><label>Reel</label><a href="${safeUrl(a.link_reel)}" target="_blank" rel="noopener noreferrer" style="color:#910909;font-size:13px">${esc(a.link_reel)}</a></div>` : ''}
                 </div>
             </div>
 
@@ -258,14 +276,14 @@ function mostrarModalVista(a, fotos) {
             <div class="vista-section">
                 <h4>Idiomas</h4>
                 <div class="vista-tags">
-                    ${idiomas.map(i => `<span class="tag tag-idioma">${i.idioma}${i.nivel ? ' · ' + i.nivel : ''}</span>`).join('')}
+                    ${idiomas.map(i => `<span class="tag tag-idioma">${esc(i.idioma)}${i.nivel ? ' · ' + esc(i.nivel) : ''}</span>`).join('')}
                 </div>
             </div>` : ''}
 
             ${habArr.length ? `
             <div class="vista-section">
                 <h4>Habilidades</h4>
-                <div class="vista-tags">${habArr.map(h => `<span class="tag tag-exp">${h}</span>`).join('')}</div>
+                <div class="vista-tags">${habArr.map(h => `<span class="tag tag-exp">${esc(h)}</span>`).join('')}</div>
             </div>` : ''}
 
             ${exps.length ? `
@@ -273,8 +291,8 @@ function mostrarModalVista(a, fotos) {
                 <h4>Experiencia Profesional</h4>
                 ${exps.map(e => `
                     <div style="margin-bottom:8px;padding:10px;background:#fafafa;border-radius:8px;font-size:13px">
-                        <strong>${e.nombre || '—'}</strong>
-                        <span style="color:#910909;margin-left:8px">${TIPOS_EXP[e.tipo] || e.tipo || ''}</span>
+                        <strong>${esc(e.nombre) || '—'}</strong>
+                        <span style="color:#910909;margin-left:8px">${esc(TIPOS_EXP[e.tipo] || e.tipo || '')}</span>
                     </div>`).join('')}
             </div>` : ''}
 
@@ -283,7 +301,7 @@ function mostrarModalVista(a, fotos) {
                 <h4>Formación Artística</h4>
                 ${formaciones.map(f => `
                     <div style="margin-bottom:8px;padding:10px;background:#fafafa;border-radius:8px;font-size:13px">
-                        <strong>${f.nombre || '—'}</strong>
+                        <strong>${esc(f.nombre) || '—'}</strong>
                     </div>`).join('')}
             </div>` : ''}
 
@@ -291,10 +309,10 @@ function mostrarModalVista(a, fotos) {
             <div class="vista-section">
                 <h4>Redes Sociales</h4>
                 <div class="vista-tags">
-                    ${redes.facebook  ? `<a href="${redes.facebook}"  target="_blank" class="tag tag-talla">Facebook</a>`  : ''}
-                    ${redes.instagram ? `<a href="${redes.instagram}" target="_blank" class="tag tag-idioma">Instagram</a>` : ''}
-                    ${redes.tiktok    ? `<a href="${redes.tiktok}"    target="_blank" class="tag tag-exp">TikTok</a>`    : ''}
-                    ${redes.imdb      ? `<a href="${redes.imdb}"      target="_blank" class="tag tag-talla">IMDB</a>`      : ''}
+                    ${redes.facebook  ? `<a href="${safeUrl(redes.facebook)}"  target="_blank" rel="noopener noreferrer" class="tag tag-talla">Facebook</a>`  : ''}
+                    ${redes.instagram ? `<a href="${safeUrl(redes.instagram)}" target="_blank" rel="noopener noreferrer" class="tag tag-idioma">Instagram</a>` : ''}
+                    ${redes.tiktok    ? `<a href="${safeUrl(redes.tiktok)}"    target="_blank" rel="noopener noreferrer" class="tag tag-exp">TikTok</a>`    : ''}
+                    ${redes.imdb      ? `<a href="${safeUrl(redes.imdb)}"      target="_blank" rel="noopener noreferrer" class="tag tag-talla">IMDB</a>`      : ''}
                 </div>
             </div>` : ''}
 
@@ -309,7 +327,7 @@ function mostrarModalVista(a, fotos) {
             ${a.biografia ? `
             <div class="vista-section">
                 <h4>Biografía</h4>
-                <p style="font-size:14px;color:#444;line-height:1.6">${a.biografia}</p>
+                <p style="font-size:14px;color:#444;line-height:1.6">${esc(a.biografia)}</p>
             </div>` : ''}
         </div>
         <div class="modal-footer">

@@ -1,6 +1,17 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
+// Escapa caracteres HTML para evitar XSS en correos
+function esc(s) {
+    if (s == null) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 const SMTP_PORT = parseInt(process.env.SMTP_PORT) || 465;
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.hostinger.com',
@@ -11,7 +22,8 @@ const transporter = nodemailer.createTransport({
         pass: process.env.SMTP_PASS
     },
     tls: {
-        rejectUnauthorized: false  // evita errores de certificado en algunos hosts
+        // En producción valida certificados; en desarrollo es más permisivo
+        rejectUnauthorized: process.env.NODE_ENV === 'production'
     }
 });
 
@@ -58,7 +70,7 @@ function baseHTML(contenido) {
 async function enviarBienvenida(actor) {
     if (!actor.email) return;
     const html = baseHTML(`
-        <p>Hola <strong>${actor.nombre}</strong>,</p>
+        <p>Hola <strong>${esc(actor.nombre)}</strong>,</p>
         <p>¡Bienvenido a <strong>8a Representaciones</strong>! Tu cuenta ha sido creada exitosamente.</p>
         <p>Ya puedes acceder a tu perfil, completar tu información y estar atento a las nuevas convocatorias que publiquemos.</p>
         <a href="${APP_URL}/perfil.html" class="btn">Ir a mi perfil</a>
@@ -88,12 +100,12 @@ async function enviarConvocatoria(actores, convocatoria) {
     for (const actor of actores) {
         if (!actor.email) continue;
         const html = baseHTML(`
-            <p>Hola <strong>${actor.nombre}</strong>,</p>
+            <p>Hola <strong>${esc(actor.nombre)}</strong>,</p>
             <p>Tenemos una nueva convocatoria que puede interesarte:</p>
-            <div class="dato"><strong>${convocatoria.titulo}</strong></div>
-            ${convocatoria.descripcion ? `<p>${convocatoria.descripcion}</p>` : ''}
-            ${convocatoria.requisitos ? `<div class="dato"><strong>Requisitos:</strong><br>${convocatoria.requisitos}</div>` : ''}
-            ${fechaLimite ? `<div class="dato"><strong>Fecha límite:</strong> ${fechaLimite}</div>` : ''}
+            <div class="dato"><strong>${esc(convocatoria.titulo)}</strong></div>
+            ${convocatoria.descripcion ? `<p>${esc(convocatoria.descripcion)}</p>` : ''}
+            ${convocatoria.requisitos ? `<div class="dato"><strong>Requisitos:</strong><br>${esc(convocatoria.requisitos)}</div>` : ''}
+            ${fechaLimite ? `<div class="dato"><strong>Fecha límite:</strong> ${esc(fechaLimite)}</div>` : ''}
             <a href="${APP_URL}/perfil.html" class="btn">Ver convocatoria completa</a>
             <hr>
             <p style="font-size:13px;color:#888">Recibes este correo porque formas parte de nuestra base de actores.</p>
@@ -117,10 +129,10 @@ async function enviarContratoSubido(actor, nombreArchivo) {
     const adminEmail = process.env.ADMIN_EMAIL;
     if (!adminEmail) return;
     const html = baseHTML(`
-        <p>El actor <strong>${actor.nombre}</strong> ha subido un contrato firmado.</p>
-        <div class="dato"><strong>Actor:</strong> ${actor.nombre}</div>
-        <div class="dato"><strong>Correo:</strong> ${actor.email}</div>
-        <div class="dato"><strong>Archivo:</strong> ${nombreArchivo}</div>
+        <p>El actor <strong>${esc(actor.nombre)}</strong> ha subido un contrato firmado.</p>
+        <div class="dato"><strong>Actor:</strong> ${esc(actor.nombre)}</div>
+        <div class="dato"><strong>Correo:</strong> ${esc(actor.email)}</div>
+        <div class="dato"><strong>Archivo:</strong> ${esc(nombreArchivo)}</div>
         <div class="dato"><strong>Fecha:</strong> ${new Date().toLocaleString('es-CO')}</div>
         <a href="${APP_URL}/admin.html" class="btn">Ir al panel admin</a>
     `);
@@ -139,15 +151,15 @@ async function enviarContratoSubido(actor, nombreArchivo) {
 // ==================== 4. RESET DE CONTRASEÑA ====================
 
 async function enviarResetPassword(email, nombre, token) {
-    const link = `${APP_URL}/reset-password.html?token=${token}`;
+    const link = `${APP_URL}/reset-password.html?token=${encodeURIComponent(token)}`;
     const html = baseHTML(`
-        <p>Hola <strong>${nombre}</strong>,</p>
+        <p>Hola <strong>${esc(nombre)}</strong>,</p>
         <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta.</p>
         <p>Haz clic en el botón para crear una nueva contraseña. Este enlace es válido por <strong>1 hora</strong>.</p>
         <a href="${link}" class="btn">Restablecer contraseña</a>
         <hr>
         <p style="font-size:13px;color:#888">Si no solicitaste esto, ignora este mensaje. Tu contraseña no cambiará.</p>
-        <p style="font-size:12px;color:#bbb;word-break:break-all">Enlace: ${link}</p>
+        <p style="font-size:12px;color:#bbb;word-break:break-all">Enlace: ${esc(link)}</p>
     `);
     try {
         await transporter.sendMail({
@@ -166,8 +178,8 @@ async function enviarResetPassword(email, nombre, token) {
 async function enviarRecordatorioFechas(actor, diasRestantes) {
     if (!actor.email) return;
     const html = baseHTML(`
-        <p>Hola <strong>${actor.nombre}</strong>,</p>
-        <p>Te recordamos que tienes fechas de no disponibilidad que vencen en <strong>${diasRestantes} día${diasRestantes !== 1 ? 's' : ''}</strong>.</p>
+        <p>Hola <strong>${esc(actor.nombre)}</strong>,</p>
+        <p>Te recordamos que tienes fechas de no disponibilidad que vencen en <strong>${Number(diasRestantes)} día${diasRestantes !== 1 ? 's' : ''}</strong>.</p>
         <p>Si ya puedes recibir propuestas en esas fechas, actualiza tu disponibilidad en tu perfil para aparecer en las búsquedas de los directores de casting.</p>
         <a href="${APP_URL}/perfil.html" class="btn">Actualizar disponibilidad</a>
     `);

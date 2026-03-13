@@ -3,6 +3,7 @@ const mysql = require('mysql2');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const path = require('path');
 const https = require('https');
@@ -18,7 +19,25 @@ if (!fs.existsSync('uploads/contratos')) fs.mkdirSync('uploads/contratos', { rec
 const app = express();
 
 // Middleware
-app.use(cors());
+const allowedOrigins = (process.env.APP_URL || 'http://localhost:3000').split(',').map(s => s.trim());
+app.use(cors({
+    origin: (origin, cb) => {
+        // Permitir peticiones sin origen (Postman, mismo servidor) y orígenes en lista blanca
+        if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+        cb(new Error('Origen no permitido por CORS'));
+    },
+    credentials: true
+}));
+
+// Rate limiting en rutas de autenticación
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 20,                   // máximo 20 intentos por ventana
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Demasiados intentos. Espera 15 minutos e intenta de nuevo.' }
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -42,7 +61,8 @@ const storage = multer.diskStorage({
         cb(null, 'uploads/');
     },
     filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
+        const ext = path.extname(file.originalname).toLowerCase().replace(/[^a-z0-9.]/g, '');
+        cb(null, Date.now() + '-' + crypto.randomBytes(8).toString('hex') + ext);
     }
 });
 
@@ -65,7 +85,7 @@ const upload = multer({
 const uploadContrato = multer({
     storage: multer.diskStorage({
         destination: (_req, _file, cb) => cb(null, 'uploads/contratos/'),
-        filename: (_req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+        filename: (_req, _file, cb) => cb(null, Date.now() + '-' + crypto.randomBytes(8).toString('hex') + '.pdf')
     }),
     limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
@@ -90,6 +110,9 @@ const promisePool = db.promise();
 
 // Secret para JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_secreto_super_seguro_cambialo_en_produccion';
+if (!process.env.JWT_SECRET) {
+    console.warn('⚠️  ADVERTENCIA: JWT_SECRET no está definido en .env. Usa un secreto seguro en producción.');
+}
 
 // Middleware para verificar token
 const verificarToken = (req, res, next) => {
@@ -139,7 +162,7 @@ const verificarCasting = (req, res, next) => {
 // ==================== RUTAS ====================
 
 // Registro de nuevo actor
-app.post('/api/registro', async (req, res) => {
+app.post('/api/registro', authLimiter, async (req, res) => {
     try {
         const {
             nombre, email, password, telefono, fecha_nacimiento, genero,
@@ -210,7 +233,7 @@ app.post('/api/registro', async (req, res) => {
 });
 
 // Login
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', authLimiter, async (req, res) => {
     try {
         const { email, password } = req.body;
 
@@ -1469,7 +1492,7 @@ app.get('/api/admin/convocatorias/:id/postulaciones/excel', verificarAdmin, asyn
 // ==================== RESET DE CONTRASEÑA ====================
 
 // Solicitar reset
-app.post('/api/auth/forgot-password', async (req, res) => {
+app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
     try {
         const { email } = req.body;
         if (!email) return res.status(400).json({ error: 'Email requerido' });
@@ -1496,7 +1519,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 });
 
 // Confirmar nuevo password
-app.post('/api/auth/reset-password', async (req, res) => {
+app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
     try {
         const { token, password } = req.body;
         if (!token || !password) return res.status(400).json({ error: 'Token y contraseña requeridos' });
