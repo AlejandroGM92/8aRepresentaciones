@@ -124,11 +124,15 @@
             <div class="logout-modal-body">
                 <div class="logout-icon">📢</div>
                 <h3>Publicar convocatoria</h3>
-                <p>Se enviará un correo a <strong>todos los actores</strong> notificándoles esta convocatoria. ¿Continuar?</p>
+                <p>¿Deseas notificar a los actores por correo?</p>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;justify-content:center;margin-top:6px;font-size:14px">
+                    <input type="checkbox" id="chkNotificarActores" checked style="width:16px;height:16px;cursor:pointer">
+                    Enviar correo a actores disponibles
+                </label>
             </div>
             <div class="modal-actions" style="padding:15px 25px 25px">
                 <button class="btn-secondary" id="btnCancelarPublicar">Cancelar</button>
-                <button class="btn-primary" id="btnConfirmarPublicar">Sí, publicar y notificar</button>
+                <button class="btn-primary" id="btnConfirmarPublicar">Publicar</button>
             </div>
         </div>
     </div>

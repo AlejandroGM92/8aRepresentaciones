@@ -39,7 +39,7 @@ function renderConvocatorias(lista) {
             ? `Publicada: ${new Date(c.fecha_publicacion).toLocaleDateString('es-CO')}`
             : `Creada: ${new Date(c.fecha_creacion).toLocaleDateString('es-CO')}`;
         const fechaLimite = c.fecha_limite
-            ? `<div class="conv-fecha-limite">Fecha límite: ${new Date(c.fecha_limite + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}</div>`
+            ? `<div class="conv-fecha-limite">Fecha límite: ${new Date(c.fecha_limite.split('T')[0] + 'T12:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}</div>`
             : '';
         const titulo = (c.titulo || '').replace(/</g, '&lt;');
         const desc = (c.descripcion || '').replace(/</g, '&lt;');
@@ -193,11 +193,13 @@ window.pedirPublicar = function(id) {
 
 document.getElementById('btnConfirmarPublicar').addEventListener('click', async () => {
     if (!convAPublicar) return;
+    const notificar = document.getElementById('chkNotificarActores').checked;
     document.getElementById('publicarOverlay').style.display = 'none';
     try {
         const res = await fetch(`${API_URL}/admin/convocatorias/${convAPublicar}/publicar`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${getToken()}` }
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+            body: JSON.stringify({ notificar })
         });
         const data = await res.json();
         if (!res.ok) { mostrarNotificacion(data.error || 'Error', 'error'); return; }
@@ -269,6 +271,7 @@ window.verPostulaciones = async function(id, titulo) {
                             <th style="padding:8px 10px;text-align:center;border-bottom:1px solid #eee">Edad</th>
                             <th style="padding:8px 10px;text-align:center;border-bottom:1px solid #eee">Estatura</th>
                             <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #eee">Ciudad / País</th>
+                            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid #eee">Manager</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -278,6 +281,7 @@ window.verPostulaciones = async function(id, titulo) {
                             <td style="padding:8px 10px;text-align:center">${a.edad != null ? a.edad + ' años' : '—'}</td>
                             <td style="padding:8px 10px;text-align:center">${a.altura ? a.altura + ' cm' : '—'}</td>
                             <td style="padding:8px 10px">${[a.ciudad_nacimiento, a.pais_nacimiento].filter(Boolean).join(', ') || '—'}</td>
+                            <td style="padding:8px 10px">${a.tiene_manager ? (a.nombre_manager ? (a.nombre_manager).replace(/</g, '&lt;') : 'Sí') : 'No'}</td>
                         </tr>`).join('')}
                     </tbody>
                 </table>

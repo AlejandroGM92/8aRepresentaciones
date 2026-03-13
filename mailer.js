@@ -1,14 +1,25 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
+const SMTP_PORT = parseInt(process.env.SMTP_PORT) || 465;
 const transporter = nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.hostinger.com',
-    port: parseInt(process.env.SMTP_PORT) || 465,
-    secure: true,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,   // true para 465 (SSL), false para 587 (STARTTLS)
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS
+    },
+    tls: {
+        rejectUnauthorized: false  // evita errores de certificado en algunos hosts
     }
+});
+
+// Verificar conexión al arrancar (solo loguea, no bloquea)
+transporter.verify().then(() => {
+    console.log('✅ SMTP conectado:', process.env.SMTP_HOST);
+}).catch(e => {
+    console.error('❌ SMTP error de conexión:', e.message);
 });
 
 const FROM = `"8a Representaciones" <${process.env.SMTP_USER}>`;
@@ -62,7 +73,7 @@ async function enviarBienvenida(actor) {
             html
         });
     } catch (e) {
-        console.error('Mailer bienvenida:', e.message);
+        console.error('Mailer bienvenida:', e.message, e.response || '');
     }
 }
 

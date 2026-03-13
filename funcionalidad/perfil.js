@@ -844,7 +844,7 @@ async function cargarConvocatoriasActor() {
 
         cont.innerHTML = detalle.map(c => {
             const fechaLimite = c.fecha_limite
-                ? `<div style="font-size:13px;color:#910909;font-weight:600;margin-bottom:8px">Fecha límite: ${new Date(c.fecha_limite + 'T00:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}</div>`
+                ? `<div style="font-size:13px;color:#910909;font-weight:600;margin-bottom:8px">Fecha límite: ${new Date(c.fecha_limite.split('T')[0] + 'T12:00:00').toLocaleDateString('es-CO', { day: '2-digit', month: 'long', year: 'numeric' })}</div>`
                 : '';
             const fechaPub = c.fecha_publicacion
                 ? `<div style="font-size:12px;color:#bbb;margin-bottom:8px">Publicada el ${new Date(c.fecha_publicacion).toLocaleDateString('es-CO')}</div>`

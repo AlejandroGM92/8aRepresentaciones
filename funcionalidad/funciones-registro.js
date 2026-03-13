@@ -21,7 +21,8 @@ function validateEmail(email) {
 }
 
 function validatePhone(phone) {
-    return /^[0-9]{10}$/.test(phone.replace(/\s/g, ''));
+    // Acepta formatos internacionales: +57 300 123 4567, 3001234567, +1 555 123-4567, etc.
+    return /^\+?[\d\s\-\(\)]{7,20}$/.test(phone.trim());
 }
 
 function showError(input, errorEl) {

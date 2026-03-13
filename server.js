@@ -1258,15 +1258,32 @@ app.post('/api/admin/convocatorias/:id/publicar', verificarAdmin, async (req, re
             [req.params.id]
         );
 
-        // Obtener todos los actores activos (no admin, no casting)
-        const [actores] = await promisePool.query(
-            'SELECT nombre, email FROM actores WHERE is_admin = 0 AND is_casting = 0 AND email IS NOT NULL'
-        );
+        const notificar = req.body && req.body.notificar !== false;
 
-        // Enviar correos en background
-        mailer.enviarConvocatoria(actores, conv).catch(e => console.error('Mailer convocatoria:', e));
+        if (notificar) {
+            // Obtener actores activos con sus fechas de no disponibilidad
+            const [todosActores] = await promisePool.query(
+                'SELECT nombre, email, fechas_no_disponibles FROM actores WHERE is_admin = 0 AND is_casting = 0 AND email IS NOT NULL'
+            );
 
-        res.json({ mensaje: `Convocatoria publicada. Se notificará a ${actores.length} actores.` });
+            // Filtrar actores con no disponibilidad activa hoy
+            const hoy = new Date().toISOString().split('T')[0];
+            const actores = todosActores.filter(a => {
+                try {
+                    const fechas = JSON.parse(a.fechas_no_disponibles || '[]');
+                    return !fechas.some(f => {
+                        const inicio = f.inicio || f.desde || '';
+                        const fin    = f.fin    || f.hasta || '';
+                        return inicio && fin && hoy >= inicio && hoy <= fin;
+                    });
+                } catch { return true; }
+            });
+
+            mailer.enviarConvocatoria(actores, conv).catch(e => console.error('Mailer convocatoria:', e));
+            res.json({ mensaje: `Convocatoria publicada. Se notificará a ${actores.length} actores disponibles.` });
+        } else {
+            res.json({ mensaje: 'Convocatoria publicada sin notificaciones.' });
+        }
     } catch (error) {
         console.error('Error publicar convocatoria:', error);
         res.status(500).json({ error: 'Error al publicar convocatoria' });
@@ -1384,6 +1401,7 @@ app.get('/api/admin/convocatorias/:id/postulaciones', verificarAdmin, async (req
             `SELECT p.id, p.fecha_postulacion,
                     a.nombre AS actor, TIMESTAMPDIFF(YEAR, a.fecha_nacimiento, CURDATE()) AS edad,
                     a.altura, a.ciudad_nacimiento, a.pais_nacimiento,
+                    a.tiene_manager, a.nombre_manager,
                     pc.nombre AS personaje
              FROM postulaciones p
              JOIN actores a ON a.id = p.actor_id
@@ -1407,6 +1425,7 @@ app.get('/api/admin/convocatorias/:id/postulaciones/excel', verificarAdmin, asyn
             `SELECT pc.nombre AS personaje, a.nombre AS actor,
                     TIMESTAMPDIFF(YEAR, a.fecha_nacimiento, CURDATE()) AS edad,
                     a.altura AS estatura_cm, a.ciudad_nacimiento, a.pais_nacimiento,
+                    a.tiene_manager, a.nombre_manager,
                     p.fecha_postulacion
              FROM postulaciones p
              JOIN actores a ON a.id = p.actor_id
@@ -1417,18 +1436,19 @@ app.get('/api/admin/convocatorias/:id/postulaciones/excel', verificarAdmin, asyn
         );
         const wb = XLSX.utils.book_new();
         const wsData = [
-            ['Personaje', 'Nombre Actor', 'Edad', 'Estatura (cm)', 'Ciudad de Nacimiento', 'País de Nacimiento', 'Fecha Postulación'],
+            ['Personaje', 'Nombre Actor', 'Edad', 'Estatura (cm)', 'Ciudad de Nacimiento', 'País de Nacimiento', 'Manager', 'Fecha Postulación'],
             ...rows.map(r => [
                 r.personaje, r.actor,
                 r.edad != null ? r.edad : '',
                 r.estatura_cm || '',
                 r.ciudad_nacimiento || '',
                 r.pais_nacimiento || '',
+                r.tiene_manager ? (r.nombre_manager || 'Sí') : 'No',
                 new Date(r.fecha_postulacion).toLocaleDateString('es-CO')
             ])
         ];
         const ws = XLSX.utils.aoa_to_sheet(wsData);
-        ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 8 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 18 }];
+        ws['!cols'] = [{ wch: 25 }, { wch: 30 }, { wch: 8 }, { wch: 14 }, { wch: 22 }, { wch: 22 }, { wch: 25 }, { wch: 18 }];
         XLSX.utils.book_append_sheet(wb, ws, 'Postulaciones');
         const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
         const nombreArchivo = `postulaciones_${(conv.titulo || 'conv').replace(/\s+/g, '_')}.xlsx`;
@@ -1497,6 +1517,37 @@ app.post('/api/auth/reset-password', async (req, res) => {
 // Servir páginas de reset y convocatorias
 app.get('/reset-password.html', (_req, res) => res.sendFile(path.join(__dirname, 'reset-password.html')));
 app.get('/convocatorias.html', (_req, res) => res.sendFile(path.join(__dirname, 'convocatorias.html')));
+
+// ==================== TEST DE CORREO (solo admin) ====================
+app.post('/api/admin/test-email', verificarToken, verificarAdmin, async (req, res) => {
+    try {
+        const { email } = req.body;
+        const destinatario = email || process.env.ADMIN_EMAIL;
+        if (!destinatario) return res.status(400).json({ error: 'No hay destinatario configurado' });
+
+        const nodemailer = require('nodemailer');
+        const SMTP_PORT = parseInt(process.env.SMTP_PORT) || 465;
+        const testTransporter = nodemailer.createTransport({
+            host: process.env.SMTP_HOST,
+            port: SMTP_PORT,
+            secure: SMTP_PORT === 465,
+            auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+            tls: { rejectUnauthorized: false }
+        });
+
+        await testTransporter.verify();
+        await testTransporter.sendMail({
+            from: `"8a Representaciones" <${process.env.SMTP_USER}>`,
+            to: destinatario,
+            subject: 'Test de correo - 8a Representaciones',
+            html: '<p>Este es un correo de prueba. Si lo recibes, el SMTP está funcionando correctamente.</p>'
+        });
+        res.json({ ok: true, mensaje: `Correo de prueba enviado a ${destinatario}` });
+    } catch (e) {
+        console.error('Test email error:', e);
+        res.status(500).json({ error: e.message, codigo: e.code, respuesta: e.response || null });
+    }
+});
 
 // Iniciar servidor
 const PORT = process.env.PORT || 3000;
