@@ -35,7 +35,7 @@
             <div class="profile-info">
                 <h1 id="nombreActor">Cargando...</h1>
                 <p id="emailActor">cargando@email.com</p>
-                <span class="badge">Actor</span>
+                <span class="badge">Artista</span>
             </div>
         </div>
 
@@ -240,22 +240,20 @@
 
             <!-- Formación Artística -->
             <div class="card">
-                <div class="card-header-flex">
-                    <h2>Formación Artística</h2>
-                    <button type="button" class="btn-secondary btn-sm" id="btnAgregarFormacion">+ Agregar</button>
-                </div>
+                <h2>Formación Artística</h2>
+                <p style="font-size:13px;color:#888;margin-bottom:12px">Ej: <em>Escuela de Artes (1999-2005)</em></p>
                 <div id="listaFormacion"></div>
                 <div id="emptyFormacion" class="empty-state-inline">Sin formación artística registrada.</div>
+                <button type="button" class="btn-secondary btn-sm" id="btnAgregarFormacion" style="margin-top:12px">+ Agregar formación</button>
             </div>
 
             <!-- Experiencia Profesional -->
             <div class="card">
-                <div class="card-header-flex">
-                    <h2>Experiencia Profesional</h2>
-                    <button type="button" class="btn-secondary btn-sm" id="btnAgregarExperiencia">+ Agregar</button>
-                </div>
+                <h2>Experiencia Profesional</h2>
+                <p style="font-size:13px;color:#888;margin-bottom:12px">Ej: <em>Mi primera Novela (2025)</em></p>
                 <div id="listaExperiencia"></div>
                 <div id="emptyExperiencia" class="empty-state-inline">Sin experiencia profesional registrada.</div>
+                <button type="button" class="btn-secondary btn-sm" id="btnAgregarExperiencia" style="margin-top:12px">+ Agregar experiencia</button>
             </div>
 
             <!-- Habilidades -->
@@ -263,28 +261,34 @@
                 <h2>Habilidades Especiales</h2>
                 <p style="font-size:13px;color:#888;margin-bottom:15px">Selecciona todas las que apliquen</p>
                 <div class="habilidades-grid" id="habilidadesGrid"></div>
-                <div class="hab-otro-input" id="habOtroInput">
-                    <div class="form-group">
-                        <label for="habOtroTexto">¿Cuál otra habilidad?</label>
-                        <input type="text" id="habOtroTexto" placeholder="Ej: Videos Musicales, Modelaje, Acrobacia...">
+                <div style="margin-top:16px">
+                    <label style="font-size:13px;font-weight:600;color:#555;display:block;margin-bottom:6px">Otras habilidades <span style="font-weight:400;color:#aaa">(escribe y presiona Enter para agregar)</span></label>
+                    <div style="display:flex;gap:8px">
+                        <input type="text" id="habOtroTexto" placeholder="Ej: Acrobacia, Modelaje, Videos musicales..." style="flex:1">
+                        <button type="button" id="btnAgregarOtroHab" class="btn-secondary btn-sm" style="white-space:nowrap">+ Agregar</button>
                     </div>
+                    <div id="otrasHabilidadesTags" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px"></div>
                 </div>
             </div>
 
-            <!-- Reel y preferencias -->
+            <!-- Escenas de sexo -->
             <div class="card">
-                <h2>Reel y Preferencias</h2>
-                <div class="form-group">
-                    <label for="linkReel">Link de tu Reel</label>
-                    <input type="url" id="linkReel" placeholder="https://youtube.com/... o https://vimeo.com/...">
-                </div>
-                <div class="form-group">
+                <div class="form-group" style="margin:0">
                     <label for="escenasSexo">¿Haces escenas de sexo?</label>
                     <select id="escenasSexo">
                         <option value="">Seleccionar</option>
                         <option value="1">Sí</option>
                         <option value="0">No</option>
                     </select>
+                </div>
+            </div>
+
+            <!-- Reel -->
+            <div class="card">
+                <h2>Reel</h2>
+                <div class="form-group">
+                    <label for="linkReel">Link de tu Reel</label>
+                    <input type="url" id="linkReel" placeholder="https://youtube.com/... o https://vimeo.com/...">
                 </div>
             </div>
 

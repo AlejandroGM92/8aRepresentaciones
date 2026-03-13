@@ -634,6 +634,19 @@ app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
             });
         }
 
+        // Excluir actores con fechas de no disponibilidad activas hoy
+        const hoy = new Date().toISOString().split('T')[0];
+        actores = actores.filter(a => {
+            try {
+                const fechas = JSON.parse(a.fechas_no_disponibles || '[]');
+                return !fechas.some(f => {
+                    const inicio = f.inicio || f.desde || '';
+                    const fin    = f.fin    || f.hasta || '';
+                    return inicio && fin && hoy >= inicio && hoy <= fin;
+                });
+            } catch { return true; }
+        });
+
         res.json({ actores });
     } catch (error) {
         console.error('Error admin actores:', error);
@@ -895,6 +908,19 @@ app.get('/api/casting/actores', verificarCasting, async (req, res) => {
                 } catch { return false; }
             });
         }
+
+        // Excluir actores con fechas de no disponibilidad activas hoy
+        const hoy = new Date().toISOString().split('T')[0];
+        actores = actores.filter(a => {
+            try {
+                const fechas = JSON.parse(a.fechas_no_disponibles || '[]');
+                return !fechas.some(f => {
+                    const inicio = f.inicio || f.desde || '';
+                    const fin    = f.fin    || f.hasta || '';
+                    return inicio && fin && hoy >= inicio && hoy <= fin;
+                });
+            } catch { return true; }
+        });
 
         res.json({ actores });
     } catch (error) {

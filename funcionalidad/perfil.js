@@ -42,10 +42,12 @@ const HABILIDADES_LISTA = [
 ];
 
 let habilidadesActivas = [];
+let otrasHabilidades = []; // habilidades personalizadas (tipo "Otro: X")
 
 function renderHabilidades() {
     const grid = document.getElementById('habilidadesGrid');
-    grid.innerHTML = HABILIDADES_LISTA.map(h => {
+    // Excluir 'Otro' del grid de checkboxes
+    grid.innerHTML = HABILIDADES_LISTA.filter(h => h !== 'Otro').map(h => {
         const id = `hab-${h.replace(/[\s\/]+/g, '-').toLowerCase()}`;
         const checked = habilidadesActivas.includes(h) ? 'checked' : '';
         return `
@@ -63,36 +65,57 @@ function renderHabilidades() {
             } else {
                 habilidadesActivas = habilidadesActivas.filter(h => h !== hab);
             }
-            document.getElementById('habOtroInput').classList.toggle('visible', habilidadesActivas.includes('Otro'));
         });
     });
+}
 
-    document.getElementById('habOtroInput').classList.toggle('visible', habilidadesActivas.includes('Otro'));
+function renderOtrasHabilidadesTags() {
+    const cont = document.getElementById('otrasHabilidadesTags');
+    if (!cont) return;
+    cont.innerHTML = otrasHabilidades.map((h, i) =>
+        `<span style="display:inline-flex;align-items:center;gap:5px;background:#f0f0f0;border-radius:20px;padding:4px 12px;font-size:13px">
+            ${h.replace(/</g, '&lt;')}
+            <button type="button" onclick="eliminarOtraHab(${i})" style="background:none;border:none;color:#999;cursor:pointer;font-size:14px;line-height:1;padding:0">✕</button>
+        </span>`
+    ).join('');
+}
+
+window.eliminarOtraHab = function(i) {
+    otrasHabilidades.splice(i, 1);
+    renderOtrasHabilidadesTags();
+};
+
+function agregarOtraHab() {
+    const input = document.getElementById('habOtroTexto');
+    const texto = (input.value || '').trim();
+    if (!texto) return;
+    if (!otrasHabilidades.includes(texto)) {
+        otrasHabilidades.push(texto);
+        renderOtrasHabilidadesTags();
+    }
+    input.value = '';
+    input.focus();
 }
 
 function cargarHabilidades(habStr) {
     let arr = [];
     try { arr = JSON.parse(habStr || '[]') || []; } catch { arr = []; }
-    habilidadesActivas = arr.map(h => {
+    otrasHabilidades = [];
+    habilidadesActivas = arr.filter(h => {
         if (h && typeof h === 'string' && h.startsWith('Otro:')) {
-            setTimeout(() => {
-                const el = document.getElementById('habOtroTexto');
-                if (el) el.value = h.substring(5).trim();
-            }, 0);
-            return 'Otro';
+            otrasHabilidades.push(h.substring(5).trim());
+            return false;
         }
-        return h;
-    }).filter(h => HABILIDADES_LISTA.includes(h));
+        return HABILIDADES_LISTA.includes(h);
+    });
+    setTimeout(renderOtrasHabilidadesTags, 0);
 }
 
 function getHabilidadesJSON() {
-    const arr = habilidadesActivas.map(h => {
-        if (h === 'Otro') {
-            const texto = (document.getElementById('habOtroTexto').value || '').trim();
-            return texto ? `Otro: ${texto}` : 'Otro';
-        }
-        return h;
-    });
+    const arr = [
+        ...habilidadesActivas.filter(h => h !== 'Otro'),
+        ...otrasHabilidades.map(h => `Otro: ${h}`)
+    ];
     return arr.length ? JSON.stringify(arr) : null;
 }
 
@@ -179,6 +202,7 @@ let idiomas = [];
 
 const IDIOMAS_LISTA = ['Español','Inglés','Francés','Alemán','Italiano','Portugués','Chino','Japonés','Árabe','Ruso','Coreano','Otro'];
 const NIVELES_LISTA = [
+    { v: 'Nativo', l: 'Nativo' },
     { v: 'A1', l: 'A1 - Principiante' }, { v: 'A2', l: 'A2 - Elemental' },
     { v: 'B1', l: 'B1 - Intermedio' },   { v: 'B2', l: 'B2 - Intermedio Alto' },
     { v: 'C1', l: 'C1 - Avanzado' },     { v: 'C2', l: 'C2 - Dominio' }
@@ -772,6 +796,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Render habilidades vacío inicial
     renderHabilidades();
+
+    // Otras habilidades — Enter y botón
+    document.getElementById('habOtroTexto').addEventListener('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); agregarOtraHab(); }
+    });
+    document.getElementById('btnAgregarOtroHab').addEventListener('click', agregarOtraHab);
 
     // Cargar perfil desde API
     cargarPerfil();
