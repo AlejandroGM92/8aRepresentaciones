@@ -1261,26 +1261,12 @@ app.post('/api/admin/convocatorias/:id/publicar', verificarAdmin, async (req, re
         const notificar = req.body && req.body.notificar !== false;
 
         if (notificar) {
-            // Obtener actores activos con sus fechas de no disponibilidad
-            const [todosActores] = await promisePool.query(
-                'SELECT nombre, email, fechas_no_disponibles FROM actores WHERE is_admin = 0 AND is_casting = 0 AND email IS NOT NULL'
+            const [actores] = await promisePool.query(
+                'SELECT nombre, email FROM actores WHERE is_admin = 0 AND is_casting = 0 AND email IS NOT NULL'
             );
 
-            // Filtrar actores con no disponibilidad activa hoy
-            const hoy = new Date().toISOString().split('T')[0];
-            const actores = todosActores.filter(a => {
-                try {
-                    const fechas = JSON.parse(a.fechas_no_disponibles || '[]');
-                    return !fechas.some(f => {
-                        const inicio = f.inicio || f.desde || '';
-                        const fin    = f.fin    || f.hasta || '';
-                        return inicio && fin && hoy >= inicio && hoy <= fin;
-                    });
-                } catch { return true; }
-            });
-
             mailer.enviarConvocatoria(actores, conv).catch(e => console.error('Mailer convocatoria:', e));
-            res.json({ mensaje: `Convocatoria publicada. Se notificará a ${actores.length} actores disponibles.` });
+            res.json({ mensaje: `Convocatoria publicada. Se notificará a ${actores.length} actores.` });
         } else {
             res.json({ mensaje: 'Convocatoria publicada sin notificaciones.' });
         }
