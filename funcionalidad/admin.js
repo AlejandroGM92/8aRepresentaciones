@@ -145,11 +145,31 @@ function renderActores(actores) {
         const nombre = (a.nombre || '').replace(/'/g, "\\'");
         const fisico = [a.altura ? a.altura + ' cm' : null, a.color_ojos || null].filter(Boolean);
 
+        const fechasND = parseJSON(a.fechas_no_disponibles, []);
+        const hoy = new Date().toISOString().split('T')[0];
+        const noDisponibleHoy = fechasND.some(f => {
+            const ini = f.inicio || f.desde || '';
+            const fin = f.fin || f.hasta || '';
+            return ini && fin && hoy >= ini && hoy <= fin;
+        });
+        const fechasNDHTML = fechasND.length
+            ? `<div style="margin-top:6px;font-size:11px;color:#666">
+                <span style="font-weight:600;color:#555">No disponible:</span>
+                ${fechasND.map(f => {
+                    const ini = f.inicio || f.desde || '';
+                    const fin = f.fin || f.hasta || '';
+                    const activa = ini && fin && hoy >= ini && hoy <= fin;
+                    return `<span style="display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:20px;background:${activa ? '#ffe0e0' : '#f0f0f0'};color:${activa ? '#910909' : '#777'}">${ini} → ${fin}</span>`;
+                }).join('')}
+              </div>`
+            : '';
+
         return `
         <div class="actor-card">
             <div class="actor-photo">
                 <img src="${fotoSrc(a.foto_perfil)}" alt="${nombre}" onerror="this.src='${fotoSrc(null)}'">
                 ${a.is_admin ? '<span class="admin-badge">Admin</span>' : ''}
+                ${noDisponibleHoy ? '<span class="admin-badge" style="background:#910909;top:auto;bottom:6px">No disponible</span>' : ''}
             </div>
             <div class="actor-body">
                 <h3 class="actor-name">${a.nombre || '—'}</h3>
@@ -158,6 +178,7 @@ function renderActores(actores) {
                 ${fisico.length ? `<div class="actor-tags">${fisico.map(t => `<span class="tag tag-talla">${t}</span>`).join('')}</div>` : ''}
                 ${idiomasArr.length ? `<div class="actor-tags">${idiomasArr.slice(0,3).map(i => `<span class="tag tag-idioma">${i}</span>`).join('')}</div>` : ''}
                 ${habArr.length ? `<div class="actor-tags">${habArr.slice(0,2).map(h => `<span class="tag tag-exp">${h}</span>`).join('')}</div>` : ''}
+                ${fechasNDHTML}
             </div>
             <div class="actor-actions">
                 <button class="btn-action btn-view" onclick="verActor(${a.id})">Ver</button>
