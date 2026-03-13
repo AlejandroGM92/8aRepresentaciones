@@ -896,19 +896,6 @@ app.get('/api/casting/actores', verificarCasting, async (req, res) => {
             });
         }
 
-        // Excluir actores con fechas de no disponibilidad activas hoy
-        const hoy = new Date().toISOString().split('T')[0];
-        actores = actores.filter(a => {
-            try {
-                const fechas = JSON.parse(a.fechas_no_disponibles || '[]');
-                return !fechas.some(f => {
-                    const inicio = f.inicio || f.desde || '';
-                    const fin    = f.fin    || f.hasta || '';
-                    return inicio && fin && hoy >= inicio && hoy <= fin;
-                });
-            } catch { return true; }
-        });
-
         res.json({ actores });
     } catch (error) {
         console.error('Error casting actores:', error);
@@ -1248,12 +1235,23 @@ app.post('/api/admin/convocatorias/:id/publicar', verificarAdmin, async (req, re
         const notificar = req.body && req.body.notificar !== false;
 
         if (notificar) {
-            const [actores] = await promisePool.query(
-                'SELECT nombre, email FROM actores WHERE is_admin = 0 AND is_casting = 0 AND email IS NOT NULL'
+            // Obtener actores y filtrar los que están disponibles hoy
+            const [todosActores] = await promisePool.query(
+                'SELECT nombre, email, fechas_no_disponibles FROM actores WHERE is_admin = 0 AND is_casting = 0 AND email IS NOT NULL'
             );
-
+            const hoy = new Date().toISOString().split('T')[0];
+            const actores = todosActores.filter(a => {
+                try {
+                    const fechas = JSON.parse(a.fechas_no_disponibles || '[]');
+                    return !fechas.some(f => {
+                        const ini = f.inicio || f.desde || '';
+                        const fin = f.fin || f.hasta || '';
+                        return ini && fin && hoy >= ini && hoy <= fin;
+                    });
+                } catch { return true; }
+            });
             mailer.enviarConvocatoria(actores, conv).catch(e => console.error('Mailer convocatoria:', e));
-            res.json({ mensaje: `Convocatoria publicada. Se notificará a ${actores.length} actores.` });
+            res.json({ mensaje: `Convocatoria publicada. Se notificará a ${actores.length} actores disponibles.` });
         } else {
             res.json({ mensaje: 'Convocatoria publicada sin notificaciones.' });
         }
@@ -1263,7 +1261,20 @@ app.post('/api/admin/convocatorias/:id/publicar', verificarAdmin, async (req, re
     }
 });
 
-// Admin: cerrar convocatoria
+// Admin: desactivar convocatoria (vuelve a borrador, sin notificar)
+app.post('/api/admin/convocatorias/:id/desactivar', verificarAdmin, async (req, res) => {
+    try {
+        await promisePool.query(
+            "UPDATE convocatorias SET estado='borrador' WHERE id=?",
+            [req.params.id]
+        );
+        res.json({ mensaje: 'Convocatoria desactivada (volvió a borrador)' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al desactivar convocatoria' });
+    }
+});
+
+// Admin: cerrar convocatoria (archivada permanentemente)
 app.post('/api/admin/convocatorias/:id/cerrar', verificarAdmin, async (req, res) => {
     try {
         await promisePool.query(

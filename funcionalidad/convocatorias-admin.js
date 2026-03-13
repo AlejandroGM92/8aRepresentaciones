@@ -56,8 +56,9 @@ function renderConvocatorias(lista) {
             ${desc ? `<p class="conv-desc">${desc}</p>` : ''}
             ${req ? `<div class="conv-req"><strong>Requisitos:</strong><br>${req}</div>` : ''}
             <div class="conv-actions">
-                ${c.estado === 'borrador' ? `<button class="btn-sm btn-publicar" onclick="pedirPublicar(${c.id})">📢 Publicar y notificar</button>` : ''}
-                ${c.estado === 'publicada' ? `<button class="btn-sm btn-cerrar-conv" onclick="cerrarConvocatoria(${c.id})">Cerrar convocatoria</button>` : ''}
+                ${c.estado === 'borrador' ? `<button class="btn-sm btn-publicar" onclick="pedirPublicar(${c.id})">📢 Activar y notificar</button>` : ''}
+                ${c.estado === 'publicada' ? `<button class="btn-sm btn-cerrar-conv" onclick="desactivarConvocatoria(${c.id})" style="background:#6c757d">⏸ Desactivar</button>` : ''}
+                ${c.estado === 'publicada' ? `<button class="btn-sm btn-cerrar-conv" onclick="cerrarConvocatoria(${c.id})">Archivar</button>` : ''}
                 ${c.estado !== 'cerrada' ? `<button class="btn-sm btn-editar-conv" onclick="abrirEditar(${c.id})">Editar</button>` : ''}
                 <button class="btn-sm" style="background:#555;color:#fff" onclick="verPostulaciones(${c.id}, '${titulo.replace(/'/g, "\\'")}')">Ver postulaciones</button>
                 <button class="btn-sm btn-eliminar-conv" onclick="pedirEliminar(${c.id}, '${titulo.replace(/'/g, "\\'")}')">Eliminar</button>
@@ -213,6 +214,21 @@ document.getElementById('btnCancelarPublicar').addEventListener('click', () => {
     document.getElementById('publicarOverlay').style.display = 'none';
     convAPublicar = null;
 });
+
+// ==================== DESACTIVAR ====================
+
+window.desactivarConvocatoria = async function(id) {
+    try {
+        const res = await fetch(`${API_URL}/admin/convocatorias/${id}/desactivar`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        const data = await res.json();
+        if (!res.ok) { mostrarNotificacion(data.error || 'Error', 'error'); return; }
+        mostrarNotificacion('Convocatoria desactivada (borrador)');
+        cargarConvocatorias();
+    } catch { mostrarNotificacion('Error de conexión', 'error'); }
+};
 
 // ==================== CERRAR ====================
 
