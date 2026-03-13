@@ -19,8 +19,21 @@ const TIPOS_EXP_LABEL = {
     comercial:'Comercial',videoclip:'Videoclip',publicidad:'Publicidad',otro:'Otro'
 };
 
+const ACENTOS_LISTA = [
+    'Español neutro (Latinoamérica)', 'Mexicano', 'Colombiano (bogotano/neutro)',
+    'Paisa (antioqueño)', 'Costeño (colombiano)', 'Caleño', 'Venezolano',
+    'Argentino / Rioplatense', 'Chileno', 'Peruano', 'Cubano', 'Puertorriqueño',
+    'Dominicano', 'Guatemalteco', 'Ecuatoriano', 'Boliviano', 'Paraguayo',
+    'Uruguayo', 'Hondureño', 'Salvadoreño', 'Nicaragüense', 'Costarricense', 'Panameño',
+    'Español peninsular (castellano)', 'Andaluz', 'Canario',
+    'Americano (inglés)', 'Británico (inglés)', 'Francés', 'Italiano',
+    'Portugués / Brasileño', 'Alemán', 'Ruso', 'Japonés', 'Chino'
+];
+
 let actorId = null;          // null = crear, número = editar
 let habilidadesActivas = [];
+let acentosManejaArr = [];
+let acentosNoManejaArr = [];
 let fechasNoDisponibles = [];
 let idiomas = [];
 let formaciones = [];
@@ -122,6 +135,81 @@ function getHabilidadesJSON() {
         if (otroTexto) list.push(`Otro: ${otroTexto}`);
     }
     return JSON.stringify(list);
+}
+
+// ==================== ACENTOS ====================
+
+function poblarSelectAcentos() {
+    ['selectAcentoManeja', 'selectAcentoNoManeja'].forEach(selId => {
+        const sel = document.getElementById(selId);
+        if (!sel) return;
+        const first = sel.options[0];
+        sel.innerHTML = '';
+        sel.appendChild(first);
+        ACENTOS_LISTA.forEach(a => {
+            const opt = document.createElement('option');
+            opt.value = a; opt.textContent = a;
+            sel.appendChild(opt);
+        });
+    });
+}
+
+function renderAcentosTags(arr, containerId, tipo) {
+    const cont = document.getElementById(containerId);
+    if (!cont) return;
+    const color = tipo === 'maneja' ? '#e6f4ea' : '#fde8e8';
+    const textColor = tipo === 'maneja' ? '#1d6f42' : '#910909';
+    cont.innerHTML = arr.map((a, i) =>
+        `<span style="display:inline-flex;align-items:center;gap:5px;background:${color};color:${textColor};border-radius:20px;padding:4px 12px;font-size:13px;font-weight:500">
+            ${a.replace(/</g,'&lt;')}
+            <button type="button" onclick="eliminarAcento('${tipo}',${i})" style="background:none;border:none;color:${textColor};cursor:pointer;font-size:14px;line-height:1;padding:0;opacity:.7">✕</button>
+        </span>`
+    ).join('');
+}
+
+window.eliminarAcento = function(tipo, i) {
+    if (tipo === 'maneja') { acentosManejaArr.splice(i,1); renderAcentosTags(acentosManejaArr,'acentosManejaTagsContainer','maneja'); }
+    else { acentosNoManejaArr.splice(i,1); renderAcentosTags(acentosNoManejaArr,'acentosNoManejaTagsContainer','nomaneja'); }
+};
+
+function agregarAcentoDesdeSelect(tipo) {
+    const sel = document.getElementById(tipo === 'maneja' ? 'selectAcentoManeja' : 'selectAcentoNoManeja');
+    const val = sel ? sel.value.trim() : '';
+    if (!val) return;
+    const arr = tipo === 'maneja' ? acentosManejaArr : acentosNoManejaArr;
+    const cont = tipo === 'maneja' ? 'acentosManejaTagsContainer' : 'acentosNoManejaTagsContainer';
+    if (!arr.includes(val)) { arr.push(val); renderAcentosTags(arr, cont, tipo === 'maneja' ? 'maneja' : 'nomaneja'); }
+    sel.value = '';
+}
+
+function agregarAcentoOtro(tipo) {
+    const inputId = tipo === 'maneja' ? 'acentoManejaOtroTexto' : 'acentoNoManejaOtroTexto';
+    const input = document.getElementById(inputId);
+    const val = (input ? input.value : '').trim();
+    if (!val) return;
+    const arr = tipo === 'maneja' ? acentosManejaArr : acentosNoManejaArr;
+    const cont = tipo === 'maneja' ? 'acentosManejaTagsContainer' : 'acentosNoManejaTagsContainer';
+    if (!arr.includes(val)) { arr.push(val); renderAcentosTags(arr, cont, tipo === 'maneja' ? 'maneja' : 'nomaneja'); }
+    if (input) { input.value = ''; input.focus(); }
+}
+
+function cargarAcentos(actor) {
+    try { acentosManejaArr = JSON.parse(actor.acentos_maneja || '[]') || []; } catch { acentosManejaArr = []; }
+    try { acentosNoManejaArr = JSON.parse(actor.acentos_no_maneja || '[]') || []; } catch { acentosNoManejaArr = []; }
+    renderAcentosTags(acentosManejaArr, 'acentosManejaTagsContainer', 'maneja');
+    renderAcentosTags(acentosNoManejaArr, 'acentosNoManejaTagsContainer', 'nomaneja');
+}
+
+function iniciarEventosAcentos() {
+    poblarSelectAcentos();
+    const b = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('click', fn); };
+    const k = (id, fn) => { const el = document.getElementById(id); if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); fn(); } }); };
+    b('btnAgregarAcentoManeja', () => agregarAcentoDesdeSelect('maneja'));
+    b('btnAgregarAcentoNoManeja', () => agregarAcentoDesdeSelect('nomaneja'));
+    b('btnAgregarAcentoManejaOtro', () => agregarAcentoOtro('maneja'));
+    b('btnAgregarAcentoNoManejaOtro', () => agregarAcentoOtro('nomaneja'));
+    k('acentoManejaOtroTexto', () => agregarAcentoOtro('maneja'));
+    k('acentoNoManejaOtroTexto', () => agregarAcentoOtro('nomaneja'));
 }
 
 // ==================== FECHAS NO DISPONIBLES ====================
@@ -486,6 +574,36 @@ function construirFormHTML(a) {
         </div>
     </div>
 
+    <!-- Acentos -->
+    <div class="card">
+        <h2>Acentos</h2>
+        <p style="font-size:13px;color:#888;margin-bottom:18px">Indica los acentos que maneja y los que no</p>
+        <div style="margin-bottom:20px">
+            <label style="font-size:14px;font-weight:700;color:#333;display:block;margin-bottom:8px">✅ Acentos que maneja</label>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+                <select id="selectAcentoManeja" style="flex:1"><option value="">— Seleccionar —</option></select>
+                <button type="button" id="btnAgregarAcentoManeja" class="btn-secondary btn-sm" style="white-space:nowrap">+ Agregar</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+                <input type="text" id="acentoManejaOtroTexto" placeholder="Otro acento..." style="flex:1">
+                <button type="button" id="btnAgregarAcentoManejaOtro" class="btn-secondary btn-sm" style="white-space:nowrap">+ Otro</button>
+            </div>
+            <div id="acentosManejaTagsContainer" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+        <div>
+            <label style="font-size:14px;font-weight:700;color:#333;display:block;margin-bottom:8px">❌ Acentos que NO maneja</label>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+                <select id="selectAcentoNoManeja" style="flex:1"><option value="">— Seleccionar —</option></select>
+                <button type="button" id="btnAgregarAcentoNoManeja" class="btn-secondary btn-sm" style="white-space:nowrap">+ Agregar</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+                <input type="text" id="acentoNoManejaOtroTexto" placeholder="Otro acento..." style="flex:1">
+                <button type="button" id="btnAgregarAcentoNoManejaOtro" class="btn-secondary btn-sm" style="white-space:nowrap">+ Otro</button>
+            </div>
+            <div id="acentosNoManejaTagsContainer" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+    </div>
+
     <!-- Idiomas -->
     <div class="card">
         <div class="card-header-flex">
@@ -729,6 +847,8 @@ window.guardarActor = async function() {
         anio_inicio_experiencia: get('fAnioInicioExp') || null,
         escenas_sexo:          escenasSexo !== '' ? parseInt(escenasSexo) : null,
         link_reel:             get('fLinkReel').trim(),
+        acentos_maneja:        acentosManejaArr.length ? JSON.stringify(acentosManejaArr) : null,
+        acentos_no_maneja:     acentosNoManejaArr.length ? JSON.stringify(acentosNoManejaArr) : null,
         is_admin:              rol === 'admin',
         is_casting:            rol === 'casting',
     };
@@ -840,6 +960,10 @@ async function init() {
             poblarSelectEdadAp('fEdadApMin', actor.edad_aparente_min);
             poblarSelectEdadAp('fEdadApMax', actor.edad_aparente_max);
 
+            // Acentos
+            iniciarEventosAcentos();
+            cargarAcentos(actor);
+
             // Galería
             renderGaleria(data.fotos || []);
 
@@ -869,6 +993,7 @@ async function init() {
         renderExperiencias();
         poblarSelectEdadAp('fEdadApMin', null);
         poblarSelectEdadAp('fEdadApMax', null);
+        iniciarEventosAcentos();
     }
 }
 

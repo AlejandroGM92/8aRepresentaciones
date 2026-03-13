@@ -678,7 +678,8 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
                 formacion_artistica, redes_sociales, idiomas, is_admin, is_casting,
                 edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
                 fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel,
-                ciudad_nacimiento, pais_nacimiento, puede_subir_contrato } = req.body;
+                ciudad_nacimiento, pais_nacimiento, puede_subir_contrato,
+                acentos_maneja, acentos_no_maneja } = req.body;
 
         await promisePool.query(
             `UPDATE actores SET nombre=?, email=?, telefono=?, fecha_nacimiento=?, genero=?,
@@ -687,7 +688,8 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              formacion_artistica=?, redes_sociales=?, idiomas=?, is_admin=?, is_casting=?,
              edad_aparente_min=?, edad_aparente_max=?, tiene_manager=?, nombre_manager=?,
              fechas_no_disponibles=?, anio_inicio_experiencia=?, escenas_sexo=?, link_reel=?,
-             ciudad_nacimiento=?, pais_nacimiento=?, puede_subir_contrato=?
+             ciudad_nacimiento=?, pais_nacimiento=?, puede_subir_contrato=?,
+             acentos_maneja=?, acentos_no_maneja=?
              WHERE id=?`,
             [nombre, email, telefono || null, fecha_nacimiento || null, genero || null,
              altura || null, peso || null, color_ojos || null, color_cabello || null,
@@ -701,6 +703,7 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              escenas_sexo != null ? escenas_sexo : null, link_reel || null,
              ciudad_nacimiento || null, pais_nacimiento || null,
              puede_subir_contrato ? 1 : 0,
+             acentos_maneja || null, acentos_no_maneja || null,
              req.params.id]
         );
         res.json({ mensaje: 'Actor actualizado exitosamente' });
