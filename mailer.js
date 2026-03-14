@@ -107,8 +107,10 @@ async function enviarConvocatoria(actores, convocatoria) {
             const html = baseHTML(`
                 <p>Hola <strong>${esc(actor.nombre)}</strong>,</p>
                 <p>Tenemos una nueva convocatoria que puede interesarte:</p>
-                <div class="dato"><strong>${esc(convocatoria.titulo)}</strong></div>
-                ${convocatoria.descripcion ? `<p>${esc(convocatoria.descripcion)}</p>` : ''}
+                <div style="background:linear-gradient(135deg,#910909,#c92a2a);border-radius:8px;padding:16px 20px;margin:12px 0">
+                    <strong style="color:#ffffff;font-size:17px">${esc(convocatoria.titulo)}</strong>
+                </div>
+                ${convocatoria.descripcion ? `<p style="color:#333">${esc(convocatoria.descripcion)}</p>` : ''}
                 ${convocatoria.requisitos ? `<div class="dato"><strong>Requisitos:</strong><br>${esc(convocatoria.requisitos)}</div>` : ''}
                 ${fechaLimite ? `<div class="dato"><strong>Fecha límite:</strong> ${esc(fechaLimite)}</div>` : ''}
                 <a href="${APP_URL}/perfil.html" class="btn">Ver convocatoria completa</a>
