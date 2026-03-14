@@ -17,6 +17,7 @@ require('dotenv').config();
 if (!fs.existsSync('uploads/contratos')) fs.mkdirSync('uploads/contratos', { recursive: true });
 
 const app = express();
+app.set('trust proxy', 1); // Necesario para rate limiting detrás de proxy/Hostinger
 
 // Middleware
 // En producción restringe CORS al dominio configurado en APP_URL.
