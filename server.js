@@ -19,15 +19,20 @@ if (!fs.existsSync('uploads/contratos')) fs.mkdirSync('uploads/contratos', { rec
 const app = express();
 
 // Middleware
-const allowedOrigins = (process.env.APP_URL || 'http://localhost:3000').split(',').map(s => s.trim());
-app.use(cors({
-    origin: (origin, cb) => {
-        // Permitir peticiones sin origen (Postman, mismo servidor) y orígenes en lista blanca
-        if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-        cb(new Error('Origen no permitido por CORS'));
-    },
-    credentials: true
-}));
+// En producción restringe CORS al dominio configurado en APP_URL.
+// En desarrollo permite cualquier origen (el frontend corre en el mismo servidor Express).
+if (process.env.NODE_ENV === 'production' && process.env.APP_URL) {
+    const allowedOrigins = process.env.APP_URL.split(',').map(s => s.trim());
+    app.use(cors({
+        origin: (origin, cb) => {
+            if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+            cb(new Error('Origen no permitido por CORS'));
+        },
+        credentials: true
+    }));
+} else {
+    app.use(cors());
+}
 
 // Rate limiting en rutas de autenticación
 const authLimiter = rateLimit({
