@@ -547,6 +547,16 @@ function construirFormHTML(a) {
                 </select>
             </div>
             <div class="form-group">
+                <label>¿Hace desnudos?</label>
+                <select id="fDesnudos">
+                    <option value="">No especificado</option>
+                    <option value="1" ${a.desnudos===1?'selected':''}>Sí</option>
+                    <option value="0" ${a.desnudos===0?'selected':''}>No</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
                 <label>Año de inicio de experiencia artística</label>
                 <select id="fAnioInicioExp">
                     ${anioOptions(a.anio_inicio_experiencia)}
@@ -808,6 +818,7 @@ window.guardarActor = async function() {
     const edadApMax = get('fEdadApMax');
     const tieneManager = get('fTieneManager');
     const escenasSexo = get('fEscenasSexo');
+    const desnudos = get('fDesnudos');
 
     const redes = {
         facebook:  get('fFacebook').trim(),
@@ -845,6 +856,7 @@ window.guardarActor = async function() {
         fechas_no_disponibles: getFechasJSON(),
         anio_inicio_experiencia: get('fAnioInicioExp') || null,
         escenas_sexo:          escenasSexo !== '' ? parseInt(escenasSexo) : null,
+        desnudos:              desnudos !== '' ? parseInt(desnudos) : null,
         link_reel:             get('fLinkReel').trim(),
         acentos_maneja:        acentosManejaArr.length ? JSON.stringify(acentosManejaArr) : null,
         acentos_no_maneja:     acentosNoManejaArr.length ? JSON.stringify(acentosNoManejaArr) : null,

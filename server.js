@@ -304,7 +304,7 @@ app.get('/api/perfil', verificarToken, async (req, res) => {
              formacion_artistica, redes_sociales, idiomas,
              edad_aparente_min, edad_aparente_max,
              tiene_manager, nombre_manager, fechas_no_disponibles,
-             anio_inicio_experiencia, escenas_sexo, link_reel,
+             anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
              ciudad_nacimiento, pais_nacimiento, puede_subir_contrato,
              acentos_maneja, acentos_no_maneja
              FROM actores WHERE id = ?`,
@@ -342,7 +342,7 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
             formacion_artistica, redes_sociales, idiomas,
             edad_aparente_min, edad_aparente_max,
             tiene_manager, nombre_manager, fechas_no_disponibles,
-            anio_inicio_experiencia, escenas_sexo, link_reel,
+            anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
             ciudad_nacimiento, pais_nacimiento,
             acentos_maneja, acentos_no_maneja
         } = req.body;
@@ -356,7 +356,7 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
              formacion_artistica = ?, redes_sociales = ?, idiomas = ?,
              edad_aparente_min = ?, edad_aparente_max = ?,
              tiene_manager = ?, nombre_manager = ?, fechas_no_disponibles = ?,
-             anio_inicio_experiencia = ?, escenas_sexo = ?, link_reel = ?,
+             anio_inicio_experiencia = ?, escenas_sexo = ?, desnudos = ?, link_reel = ?,
              ciudad_nacimiento = ?, pais_nacimiento = ?,
              acentos_maneja = ?, acentos_no_maneja = ?
              WHERE id = ?`,
@@ -370,6 +370,7 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
              nombre_manager || null, fechas_no_disponibles || null,
              anio_inicio_experiencia || null,
              escenas_sexo != null ? escenas_sexo : null,
+             desnudos != null ? desnudos : null,
              link_reel || null,
              ciudad_nacimiento || null, pais_nacimiento || null,
              acentos_maneja || null, acentos_no_maneja || null,
@@ -684,7 +685,7 @@ app.get('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              biografia, habilidades, experiencia, formacion_artistica, redes_sociales, idiomas,
              foto_perfil, fecha_registro, is_admin, is_casting,
              edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
-             fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel,
+             fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
              ciudad_nacimiento, pais_nacimiento, puede_subir_contrato,
              TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
              FROM actores WHERE id = ?`,
@@ -707,7 +708,7 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
                 talla_camiseta, talla_pantalon, talla_zapatos,
                 formacion_artistica, redes_sociales, idiomas, is_admin, is_casting,
                 edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
-                fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel,
+                fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
                 ciudad_nacimiento, pais_nacimiento, puede_subir_contrato,
                 acentos_maneja, acentos_no_maneja } = req.body;
 
@@ -717,7 +718,7 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              experiencia=?, talla_camiseta=?, talla_pantalon=?, talla_zapatos=?,
              formacion_artistica=?, redes_sociales=?, idiomas=?, is_admin=?, is_casting=?,
              edad_aparente_min=?, edad_aparente_max=?, tiene_manager=?, nombre_manager=?,
-             fechas_no_disponibles=?, anio_inicio_experiencia=?, escenas_sexo=?, link_reel=?,
+             fechas_no_disponibles=?, anio_inicio_experiencia=?, escenas_sexo=?, desnudos=?, link_reel=?,
              ciudad_nacimiento=?, pais_nacimiento=?, puede_subir_contrato=?,
              acentos_maneja=?, acentos_no_maneja=?
              WHERE id=?`,
@@ -730,7 +731,9 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              edad_aparente_min || null, edad_aparente_max || null,
              tiene_manager != null ? tiene_manager : null, nombre_manager || null,
              fechas_no_disponibles || null, anio_inicio_experiencia || null,
-             escenas_sexo != null ? escenas_sexo : null, link_reel || null,
+             escenas_sexo != null ? escenas_sexo : null,
+             desnudos != null ? desnudos : null,
+             link_reel || null,
              ciudad_nacimiento || null, pais_nacimiento || null,
              puede_subir_contrato ? 1 : 0,
              acentos_maneja || null, acentos_no_maneja || null,
@@ -949,7 +952,7 @@ app.get('/api/casting/actores/:id', verificarCasting, async (req, res) => {
              color_ojos, color_cabello, talla_camiseta, talla_pantalon, talla_zapatos,
              biografia, habilidades, experiencia, formacion_artistica, redes_sociales, idiomas,
              foto_perfil, fecha_registro,
-             edad_aparente_min, edad_aparente_max, escenas_sexo, link_reel,
+             edad_aparente_min, edad_aparente_max, escenas_sexo, desnudos, link_reel,
              ciudad_nacimiento, pais_nacimiento,
              TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
              FROM actores WHERE id = ? AND is_admin = 0`,
@@ -1039,7 +1042,7 @@ app.get('/api/admin/actores/:id/excel', verificarAdmin, async (req, res) => {
              color_ojos, color_cabello, talla_camiseta, talla_pantalon, talla_zapatos,
              biografia, habilidades, experiencia, formacion_artistica, redes_sociales, idiomas,
              ciudad_nacimiento, pais_nacimiento, edad_aparente_min, edad_aparente_max,
-             tiene_manager, nombre_manager, anio_inicio_experiencia, escenas_sexo, link_reel,
+             tiene_manager, nombre_manager, anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
              fechas_no_disponibles, fecha_registro,
              TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
              FROM actores WHERE id = ?`,
@@ -1085,6 +1088,7 @@ app.get('/api/admin/actores/:id/excel', verificarAdmin, async (req, res) => {
             ['Edad aparente (mín)', a.edad_aparente_min || ''],
             ['Edad aparente (máx)', a.edad_aparente_max || ''],
             ['Escenas de sexo', a.escenas_sexo === 1 ? 'Sí' : a.escenas_sexo === 0 ? 'No' : ''],
+            ['Desnudos', a.desnudos === 1 ? 'Sí' : a.desnudos === 0 ? 'No' : ''],
             ['Link Reel', a.link_reel || ''],
             ['Año inicio experiencia', a.anio_inicio_experiencia || ''],
             ['Tiene manager', a.tiene_manager ? 'Sí' : 'No'],

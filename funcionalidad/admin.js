@@ -285,6 +285,7 @@ function mostrarModalVista(a) {
                     <div class="vista-item"><label>Cabello</label><span>${esc(a.color_cabello) || '—'}</span></div>
                     <div class="vista-item"><label>Edad aparente</label><span>${esc(edadAp)}</span></div>
                     <div class="vista-item"><label>Escenas sexo</label><span>${a.escenas_sexo === 1 ? 'Sí' : a.escenas_sexo === 0 ? 'No' : '—'}</span></div>
+                    <div class="vista-item"><label>Desnudos</label><span>${a.desnudos === 1 ? 'Sí' : a.desnudos === 0 ? 'No' : '—'}</span></div>
                 </div>
             </div>
 

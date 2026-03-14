@@ -268,6 +268,7 @@ function mostrarModalVista(a, fotos) {
                     <div class="vista-item"><label>Cabello</label><span>${esc(a.color_cabello) || '—'}</span></div>
                     <div class="vista-item"><label>Edad aparente</label><span>${esc(edadAp)}</span></div>
                     <div class="vista-item"><label>Escenas sexo</label><span>${a.escenas_sexo === 1 ? 'Sí' : a.escenas_sexo === 0 ? 'No' : '—'}</span></div>
+                    <div class="vista-item"><label>Desnudos</label><span>${a.desnudos === 1 ? 'Sí' : a.desnudos === 0 ? 'No' : '—'}</span></div>
                     ${a.link_reel ? `<div class="vista-item" style="grid-column:1/-1"><label>Reel</label><a href="${safeUrl(a.link_reel)}" target="_blank" rel="noopener noreferrer" style="color:#910909;font-size:13px">${esc(a.link_reel)}</a></div>` : ''}
                 </div>
             </div>

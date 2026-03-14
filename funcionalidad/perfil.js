@@ -530,6 +530,9 @@ function llenarFormulario(perfil) {
     // Escenas de sexo
     document.getElementById('escenasSexo').value = perfil.escenas_sexo != null ? String(perfil.escenas_sexo) : '';
 
+    // Desnudos
+    document.getElementById('desnudos').value = perfil.desnudos != null ? String(perfil.desnudos) : '';
+
     // Link reel
     document.getElementById('linkReel').value = perfil.link_reel || '';
 }
@@ -565,6 +568,7 @@ function buildSaveBody() {
         // Reel / preferencias
         link_reel:         document.getElementById('linkReel').value || null,
         escenas_sexo:      document.getElementById('escenasSexo').value !== '' ? parseInt(document.getElementById('escenasSexo').value) : null,
+        desnudos:          document.getElementById('desnudos').value !== '' ? parseInt(document.getElementById('desnudos').value) : null,
         // Habilidades (JSON array)
         habilidades:       getHabilidadesJSON(),
         // Acentos
