@@ -53,7 +53,20 @@ function renderConvocatorias(lista) {
             </div>
             <div class="conv-meta">${fecha}</div>
             ${fechaLimite}
-            ${(c.filtro_genero || c.filtro_acento) ? `<div style="font-size:12px;color:#555;margin-bottom:8px">🎯 Filtro: ${[c.filtro_genero ? `Género: ${c.filtro_genero}` : '', c.filtro_acento ? `Acento: ${c.filtro_acento}` : ''].filter(Boolean).join(' · ')}</div>` : ''}
+            ${(() => {
+                const tags = [
+                    c.filtro_genero ? `Género: ${c.filtro_genero}` : '',
+                    c.filtro_acento ? `Acento: ${c.filtro_acento}` : '',
+                    c.filtro_escenas_sexo != null ? `Escenas sexo: ${c.filtro_escenas_sexo == 1 ? 'Sí' : 'No'}` : '',
+                    c.filtro_desnudos != null ? `Desnudos: ${c.filtro_desnudos == 1 ? 'Sí' : 'No'}` : '',
+                    (c.filtro_edad_min || c.filtro_edad_max) ? `Edad: ${c.filtro_edad_min || '?'}–${c.filtro_edad_max || '?'}` : '',
+                    (c.filtro_edad_ap_min || c.filtro_edad_ap_max) ? `Ed.ap: ${c.filtro_edad_ap_min || '?'}–${c.filtro_edad_ap_max || '?'}` : '',
+                    c.filtro_anios_exp ? `Exp: ${c.filtro_anios_exp}+ años` : '',
+                    c.filtro_pais ? `País: ${c.filtro_pais}` : '',
+                    c.filtro_ciudad ? `Ciudad: ${c.filtro_ciudad}` : '',
+                ].filter(Boolean);
+                return tags.length ? `<div style="font-size:12px;color:#555;margin-bottom:8px">🎯 ${tags.join(' · ')}</div>` : '';
+            })()}
             ${desc ? `<p class="conv-desc">${desc}</p>` : ''}
             ${req ? `<div class="conv-req"><strong>Requisitos:</strong><br>${req}</div>` : ''}
             <div class="conv-actions">
@@ -135,6 +148,15 @@ window.abrirEditar = async function(id) {
     document.getElementById('convFecha').value = c.fecha_limite ? c.fecha_limite.split('T')[0] : '';
     document.getElementById('convFiltroGenero').value = c.filtro_genero || '';
     document.getElementById('convFiltroAcento').value = c.filtro_acento || '';
+    document.getElementById('convFiltroEscenasSexo').value = c.filtro_escenas_sexo != null ? String(c.filtro_escenas_sexo) : '';
+    document.getElementById('convFiltroDesnudos').value = c.filtro_desnudos != null ? String(c.filtro_desnudos) : '';
+    document.getElementById('convFiltroEdadMin').value = c.filtro_edad_min || '';
+    document.getElementById('convFiltroEdadMax').value = c.filtro_edad_max || '';
+    document.getElementById('convFiltroEdadApMin').value = c.filtro_edad_ap_min || '';
+    document.getElementById('convFiltroEdadApMax').value = c.filtro_edad_ap_max || '';
+    document.getElementById('convFiltroAniosExp').value = c.filtro_anios_exp || '';
+    document.getElementById('convFiltroPais').value = c.filtro_pais || '';
+    document.getElementById('convFiltroCiudad').value = c.filtro_ciudad || '';
     personajesActuales = (dataPj.personajes || []).map(p => ({ nombre: p.nombre, descripcion: p.descripcion || '' }));
     renderPersonajesForm(personajesActuales);
     document.getElementById('modalTitulo').textContent = 'Editar Convocatoria';
@@ -151,8 +173,17 @@ document.getElementById('btnGuardarConv').addEventListener('click', async () => 
         descripcion: document.getElementById('convDesc').value.trim(),
         requisitos: document.getElementById('convReq').value.trim(),
         fecha_limite: document.getElementById('convFecha').value || null,
-        filtro_genero: document.getElementById('convFiltroGenero').value || null,
-        filtro_acento: document.getElementById('convFiltroAcento').value || null
+        filtro_genero:      document.getElementById('convFiltroGenero').value || null,
+        filtro_acento:      document.getElementById('convFiltroAcento').value || null,
+        filtro_escenas_sexo: document.getElementById('convFiltroEscenasSexo').value !== '' ? document.getElementById('convFiltroEscenasSexo').value : null,
+        filtro_desnudos:    document.getElementById('convFiltroDesnudos').value !== '' ? document.getElementById('convFiltroDesnudos').value : null,
+        filtro_edad_min:    document.getElementById('convFiltroEdadMin').value || null,
+        filtro_edad_max:    document.getElementById('convFiltroEdadMax').value || null,
+        filtro_edad_ap_min: document.getElementById('convFiltroEdadApMin').value || null,
+        filtro_edad_ap_max: document.getElementById('convFiltroEdadApMax').value || null,
+        filtro_anios_exp:   document.getElementById('convFiltroAniosExp').value || null,
+        filtro_pais:        document.getElementById('convFiltroPais').value || null,
+        filtro_ciudad:      document.getElementById('convFiltroCiudad').value.trim() || null,
     };
 
     const url = id ? `${API_URL}/admin/convocatorias/${id}` : `${API_URL}/admin/convocatorias`;
@@ -185,8 +216,10 @@ document.getElementById('btnGuardarConv').addEventListener('click', async () => 
 
 window.cerrarModal = function() {
     document.getElementById('modalOverlay').style.display = 'none';
-    document.getElementById('convFiltroGenero').value = '';
-    document.getElementById('convFiltroAcento').value = '';
+    ['convFiltroGenero','convFiltroAcento','convFiltroEscenasSexo','convFiltroDesnudos',
+     'convFiltroEdadMin','convFiltroEdadMax','convFiltroEdadApMin','convFiltroEdadApMax',
+     'convFiltroAniosExp','convFiltroPais','convFiltroCiudad'
+    ].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
 };
 document.getElementById('modalOverlay').addEventListener('click', e => { if (e.target === e.currentTarget) cerrarModal(); });
 

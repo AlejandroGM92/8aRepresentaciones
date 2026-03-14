@@ -90,6 +90,7 @@ function getFiltros() {
         color_ojos:       document.getElementById('filtroColorOjos').value.trim(),
         color_cabello:    document.getElementById('filtroColorCabello').value.trim(),
         escenas_sexo:     document.getElementById('filtroEscenasSexo').value,
+        desnudos:         document.getElementById('filtroDesnudos').value,
         edad_aparente:    document.getElementById('filtroEdadAparente').value,
         pais_nacimiento:  document.getElementById('filtroPais').value,
         ciudad_nacimiento: document.getElementById('filtroCiudad').value.trim(),
@@ -105,7 +106,7 @@ async function cargarActores(filtros = {}) {
     // Solo enviar al servidor los filtros que maneja SQL (no los client-side)
     const serverKeys = ['nombre','habilidades','idioma','nivel_idioma','anios_exp',
                         'edad_min','edad_max','altura_min','altura_max',
-                        'color_ojos','color_cabello','escenas_sexo',
+                        'color_ojos','color_cabello','escenas_sexo','desnudos',
                         'pais_nacimiento','ciudad_nacimiento'];
     serverKeys.forEach(k => { if (filtros[k]) params.append(k, filtros[k]); });
     try {
@@ -528,6 +529,7 @@ document.getElementById('btnLimpiarFiltros').addEventListener('click', async () 
     document.getElementById('formFiltros').reset();
     document.getElementById('filtroCiudad').value = '';
     document.getElementById('filtroAcento').value = '';
+    document.getElementById('filtroDesnudos').value = '';
     filtroFechasActivo = false;
     const actores = await cargarActores();
     renderActores(actores);

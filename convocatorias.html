@@ -161,9 +161,10 @@
                         <input type="date" id="convFecha">
                     </div>
                 </div>
+                <p style="font-size:12px;color:#888;margin:0 0 8px;font-style:italic">Los filtros definen qué actores reciben la notificación por correo. Déjalos vacíos para notificar a todos.</p>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="convFiltroGenero">Filtro de género <span style="font-size:11px;color:#999;font-weight:400">(opcional)</span></label>
+                        <label for="convFiltroGenero">Género <span style="font-size:11px;color:#999;font-weight:400">(opcional)</span></label>
                         <select id="convFiltroGenero">
                             <option value="">Todos</option>
                             <option value="masculino">Masculino</option>
@@ -211,6 +212,90 @@
                             <option value="Japonés">Japonés</option>
                             <option value="Chino">Chino</option>
                         </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="convFiltroEscenasSexo">Escenas de sexo <span style="font-size:11px;color:#999;font-weight:400">(opcional)</span></label>
+                        <select id="convFiltroEscenasSexo">
+                            <option value="">Cualquiera</option>
+                            <option value="1">Solo quienes sí hacen</option>
+                            <option value="0">Solo quienes NO hacen</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="convFiltroDesnudos">Desnudos <span style="font-size:11px;color:#999;font-weight:400">(opcional)</span></label>
+                        <select id="convFiltroDesnudos">
+                            <option value="">Cualquiera</option>
+                            <option value="1">Solo quienes sí hacen</option>
+                            <option value="0">Solo quienes NO hacen</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group edad-group">
+                        <label>Edad real (rango) <span style="font-size:11px;color:#999;font-weight:400">(opcional)</span></label>
+                        <div class="edad-inputs">
+                            <input type="number" id="convFiltroEdadMin" placeholder="Mín" min="0" max="99">
+                            <span>–</span>
+                            <input type="number" id="convFiltroEdadMax" placeholder="Máx" min="0" max="99">
+                        </div>
+                    </div>
+                    <div class="form-group edad-group">
+                        <label>Edad aparente (rango) <span style="font-size:11px;color:#999;font-weight:400">(opcional)</span></label>
+                        <div class="edad-inputs">
+                            <input type="number" id="convFiltroEdadApMin" placeholder="Mín" min="0" max="99">
+                            <span>–</span>
+                            <input type="number" id="convFiltroEdadApMax" placeholder="Máx" min="0" max="99">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="convFiltroAniosExp">Mínimo años de experiencia <span style="font-size:11px;color:#999;font-weight:400">(opcional)</span></label>
+                        <select id="convFiltroAniosExp">
+                            <option value="">Cualquiera</option>
+                            <option value="1">1+ año</option>
+                            <option value="2">2+ años</option>
+                            <option value="3">3+ años</option>
+                            <option value="5">5+ años</option>
+                            <option value="10">10+ años</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="convFiltroPais">País de nacimiento <span style="font-size:11px;color:#999;font-weight:400">(opcional)</span></label>
+                        <select id="convFiltroPais">
+                            <option value="">Todos</option>
+                            <option value="Colombia">Colombia</option>
+                            <option value="México">México</option>
+                            <option value="Argentina">Argentina</option>
+                            <option value="Chile">Chile</option>
+                            <option value="Perú">Perú</option>
+                            <option value="Venezuela">Venezuela</option>
+                            <option value="Ecuador">Ecuador</option>
+                            <option value="Bolivia">Bolivia</option>
+                            <option value="Paraguay">Paraguay</option>
+                            <option value="Uruguay">Uruguay</option>
+                            <option value="Brasil">Brasil</option>
+                            <option value="España">España</option>
+                            <option value="Estados Unidos">Estados Unidos</option>
+                            <option value="Costa Rica">Costa Rica</option>
+                            <option value="Panamá">Panamá</option>
+                            <option value="Guatemala">Guatemala</option>
+                            <option value="Honduras">Honduras</option>
+                            <option value="Nicaragua">Nicaragua</option>
+                            <option value="El Salvador">El Salvador</option>
+                            <option value="República Dominicana">República Dominicana</option>
+                            <option value="Cuba">Cuba</option>
+                            <option value="Puerto Rico">Puerto Rico</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="convFiltroCiudad">Ciudad de nacimiento <span style="font-size:11px;color:#999;font-weight:400">(opcional)</span></label>
+                        <input type="text" id="convFiltroCiudad" placeholder="Ej: Bogotá, Medellín...">
                     </div>
                 </div>
                 <div class="form-group">

@@ -617,14 +617,14 @@ app.post('/api/auth/microsoft', async (req, res) => {
 app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
     try {
         const { nombre, edad_min, edad_max, habilidades, idioma, nivel_idioma,
-                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, pais_nacimiento, ciudad_nacimiento } = req.query;
+                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, desnudos, pais_nacimiento, ciudad_nacimiento } = req.query;
 
         let query = `SELECT id, nombre, email, telefono, fecha_nacimiento, genero, altura, peso,
             color_ojos, color_cabello, talla_camiseta, talla_pantalon, talla_zapatos,
             biografia, habilidades, experiencia, formacion_artistica, redes_sociales, idiomas,
             foto_perfil, fecha_registro, is_admin, is_casting,
             anio_inicio_experiencia, edad_aparente_min, edad_aparente_max,
-            escenas_sexo, fechas_no_disponibles,
+            escenas_sexo, desnudos, fechas_no_disponibles,
             ciudad_nacimiento, pais_nacimiento,
             TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
             FROM actores WHERE 1=1`;
@@ -638,6 +638,9 @@ app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
         if (altura_max)   { query += ' AND altura <= ?'; params.push(parseFloat(altura_max)); }
         if (escenas_sexo !== undefined && escenas_sexo !== '') {
             query += ' AND escenas_sexo = ?'; params.push(parseInt(escenas_sexo));
+        }
+        if (desnudos !== undefined && desnudos !== '') {
+            query += ' AND desnudos = ?'; params.push(parseInt(desnudos));
         }
         if (edad_min) { query += ' AND TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) >= ?'; params.push(parseInt(edad_min)); }
         if (edad_max) { query += ' AND TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) <= ?'; params.push(parseInt(edad_max)); }
@@ -885,14 +888,14 @@ app.delete('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
 app.get('/api/casting/actores', verificarCasting, async (req, res) => {
     try {
         const { nombre, edad_min, edad_max, habilidades, idioma, nivel_idioma,
-                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, pais_nacimiento, ciudad_nacimiento } = req.query;
+                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, desnudos, pais_nacimiento, ciudad_nacimiento } = req.query;
 
         let query = `SELECT id, nombre, fecha_nacimiento, genero, altura, peso,
             color_ojos, color_cabello, talla_camiseta, talla_pantalon, talla_zapatos,
             biografia, habilidades, experiencia, formacion_artistica, redes_sociales, idiomas,
             foto_perfil, fecha_registro,
             anio_inicio_experiencia, edad_aparente_min, edad_aparente_max,
-            escenas_sexo, fechas_no_disponibles,
+            escenas_sexo, desnudos, fechas_no_disponibles,
             ciudad_nacimiento, pais_nacimiento,
             TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
             FROM actores WHERE is_admin = 0 AND (is_casting IS NULL OR is_casting = 0)`;
@@ -906,6 +909,9 @@ app.get('/api/casting/actores', verificarCasting, async (req, res) => {
         if (altura_max)   { query += ' AND altura <= ?'; params.push(parseFloat(altura_max)); }
         if (escenas_sexo !== undefined && escenas_sexo !== '') {
             query += ' AND escenas_sexo = ?'; params.push(parseInt(escenas_sexo));
+        }
+        if (desnudos !== undefined && desnudos !== '') {
+            query += ' AND desnudos = ?'; params.push(parseInt(desnudos));
         }
         if (edad_min) { query += ' AND TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) >= ?'; params.push(parseInt(edad_min)); }
         if (edad_max) { query += ' AND TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) <= ?'; params.push(parseInt(edad_max)); }
@@ -1237,11 +1243,24 @@ app.get('/api/admin/convocatorias', verificarAdmin, async (req, res) => {
 // Admin: crear convocatoria
 app.post('/api/admin/convocatorias', verificarAdmin, async (req, res) => {
     try {
-        const { titulo, descripcion, requisitos, fecha_limite, filtro_genero, filtro_acento } = req.body;
+        const { titulo, descripcion, requisitos, fecha_limite,
+                filtro_genero, filtro_acento, filtro_pais, filtro_ciudad,
+                filtro_anios_exp, filtro_escenas_sexo, filtro_desnudos,
+                filtro_edad_min, filtro_edad_max, filtro_edad_ap_min, filtro_edad_ap_max } = req.body;
         if (!titulo) return res.status(400).json({ error: 'El título es requerido' });
         const [result] = await promisePool.query(
-            'INSERT INTO convocatorias (titulo, descripcion, requisitos, fecha_limite, filtro_genero, filtro_acento) VALUES (?, ?, ?, ?, ?, ?)',
-            [titulo, descripcion || null, requisitos || null, fecha_limite || null, filtro_genero || null, filtro_acento || null]
+            `INSERT INTO convocatorias (titulo, descripcion, requisitos, fecha_limite,
+             filtro_genero, filtro_acento, filtro_pais, filtro_ciudad,
+             filtro_anios_exp, filtro_escenas_sexo, filtro_desnudos,
+             filtro_edad_min, filtro_edad_max, filtro_edad_ap_min, filtro_edad_ap_max)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [titulo, descripcion || null, requisitos || null, fecha_limite || null,
+             filtro_genero || null, filtro_acento || null, filtro_pais || null, filtro_ciudad || null,
+             filtro_anios_exp != null && filtro_anios_exp !== '' ? parseInt(filtro_anios_exp) : null,
+             filtro_escenas_sexo != null && filtro_escenas_sexo !== '' ? parseInt(filtro_escenas_sexo) : null,
+             filtro_desnudos != null && filtro_desnudos !== '' ? parseInt(filtro_desnudos) : null,
+             filtro_edad_min || null, filtro_edad_max || null,
+             filtro_edad_ap_min || null, filtro_edad_ap_max || null]
         );
         res.status(201).json({ mensaje: 'Convocatoria creada', id: result.insertId });
     } catch (error) {
@@ -1252,10 +1271,24 @@ app.post('/api/admin/convocatorias', verificarAdmin, async (req, res) => {
 // Admin: editar convocatoria
 app.put('/api/admin/convocatorias/:id', verificarAdmin, async (req, res) => {
     try {
-        const { titulo, descripcion, requisitos, fecha_limite, filtro_genero, filtro_acento } = req.body;
+        const { titulo, descripcion, requisitos, fecha_limite,
+                filtro_genero, filtro_acento, filtro_pais, filtro_ciudad,
+                filtro_anios_exp, filtro_escenas_sexo, filtro_desnudos,
+                filtro_edad_min, filtro_edad_max, filtro_edad_ap_min, filtro_edad_ap_max } = req.body;
         await promisePool.query(
-            'UPDATE convocatorias SET titulo=?, descripcion=?, requisitos=?, fecha_limite=?, filtro_genero=?, filtro_acento=? WHERE id=?',
-            [titulo, descripcion || null, requisitos || null, fecha_limite || null, filtro_genero || null, filtro_acento || null, req.params.id]
+            `UPDATE convocatorias SET titulo=?, descripcion=?, requisitos=?, fecha_limite=?,
+             filtro_genero=?, filtro_acento=?, filtro_pais=?, filtro_ciudad=?,
+             filtro_anios_exp=?, filtro_escenas_sexo=?, filtro_desnudos=?,
+             filtro_edad_min=?, filtro_edad_max=?, filtro_edad_ap_min=?, filtro_edad_ap_max=?
+             WHERE id=?`,
+            [titulo, descripcion || null, requisitos || null, fecha_limite || null,
+             filtro_genero || null, filtro_acento || null, filtro_pais || null, filtro_ciudad || null,
+             filtro_anios_exp != null && filtro_anios_exp !== '' ? parseInt(filtro_anios_exp) : null,
+             filtro_escenas_sexo != null && filtro_escenas_sexo !== '' ? parseInt(filtro_escenas_sexo) : null,
+             filtro_desnudos != null && filtro_desnudos !== '' ? parseInt(filtro_desnudos) : null,
+             filtro_edad_min || null, filtro_edad_max || null,
+             filtro_edad_ap_min || null, filtro_edad_ap_max || null,
+             req.params.id]
         );
         res.json({ mensaje: 'Convocatoria actualizada' });
     } catch (error) {
@@ -1277,12 +1310,32 @@ app.post('/api/admin/convocatorias/:id/publicar', verificarAdmin, async (req, re
         const notificar = req.body && req.body.notificar !== false;
 
         if (notificar) {
-            // Obtener actores y filtrar los que están disponibles hoy
-            const [todosActores] = await promisePool.query(
-                'SELECT nombre, email, genero, acentos_maneja, fechas_no_disponibles FROM actores WHERE is_admin = 0 AND is_casting = 0 AND email IS NOT NULL'
-            );
+            // Construir consulta SQL con los filtros de la convocatoria
+            let sqlActores = `SELECT nombre, email, genero, acentos_maneja, fechas_no_disponibles
+                FROM actores WHERE is_admin = 0 AND is_casting = 0 AND email IS NOT NULL`;
+            const sqlParams = [];
+
+            if (conv.filtro_genero && conv.filtro_genero !== 'todos') {
+                sqlActores += ' AND LOWER(genero) = ?';
+                sqlParams.push(conv.filtro_genero.toLowerCase());
+            }
+            if (conv.filtro_pais)  { sqlActores += ' AND pais_nacimiento = ?'; sqlParams.push(conv.filtro_pais); }
+            if (conv.filtro_ciudad){ sqlActores += ' AND ciudad_nacimiento LIKE ?'; sqlParams.push(`%${conv.filtro_ciudad}%`); }
+            if (conv.filtro_escenas_sexo != null) { sqlActores += ' AND escenas_sexo = ?'; sqlParams.push(conv.filtro_escenas_sexo); }
+            if (conv.filtro_desnudos != null) { sqlActores += ' AND desnudos = ?'; sqlParams.push(conv.filtro_desnudos); }
+            if (conv.filtro_edad_min) { sqlActores += ' AND TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) >= ?'; sqlParams.push(parseInt(conv.filtro_edad_min)); }
+            if (conv.filtro_edad_max) { sqlActores += ' AND TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) <= ?'; sqlParams.push(parseInt(conv.filtro_edad_max)); }
+            if (conv.filtro_edad_ap_min) { sqlActores += ' AND edad_aparente_min >= ?'; sqlParams.push(parseInt(conv.filtro_edad_ap_min)); }
+            if (conv.filtro_edad_ap_max) { sqlActores += ' AND edad_aparente_max <= ?'; sqlParams.push(parseInt(conv.filtro_edad_ap_max)); }
+            if (conv.filtro_anios_exp) {
+                sqlActores += ' AND anio_inicio_experiencia <= ?';
+                sqlParams.push(new Date().getFullYear() - parseInt(conv.filtro_anios_exp));
+            }
+
+            const [todosActores] = await promisePool.query(sqlActores, sqlParams);
             const hoy = new Date().toISOString().split('T')[0];
             const actores = todosActores.filter(a => {
+                // Excluir no disponibles hoy
                 try {
                     const fechas = JSON.parse(a.fechas_no_disponibles || '[]');
                     if (fechas.some(f => {
@@ -1291,11 +1344,7 @@ app.post('/api/admin/convocatorias/:id/publicar', verificarAdmin, async (req, re
                         return ini && fin && hoy >= ini && hoy <= fin;
                     })) return false;
                 } catch {}
-                // Filtrar por género si la convocatoria lo especifica
-                if (conv.filtro_genero && conv.filtro_genero !== 'todos') {
-                    if ((a.genero || '').toLowerCase() !== conv.filtro_genero.toLowerCase()) return false;
-                }
-                // Filtrar por acento si la convocatoria lo especifica
+                // Filtrar por acento (JSON column, no filtrable en SQL directo)
                 if (conv.filtro_acento) {
                     try {
                         const acentos = JSON.parse(a.acentos_maneja || '[]');
