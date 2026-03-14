@@ -97,30 +97,37 @@ async function enviarConvocatoria(actores, convocatoria) {
         ? new Date(convocatoria.fecha_limite).toLocaleDateString('es-CO', { day:'2-digit', month:'long', year:'numeric' })
         : null;
 
-    for (const actor of actores) {
-        if (!actor.email) continue;
-        const html = baseHTML(`
-            <p>Hola <strong>${esc(actor.nombre)}</strong>,</p>
-            <p>Tenemos una nueva convocatoria que puede interesarte:</p>
-            <div class="dato"><strong>${esc(convocatoria.titulo)}</strong></div>
-            ${convocatoria.descripcion ? `<p>${esc(convocatoria.descripcion)}</p>` : ''}
-            ${convocatoria.requisitos ? `<div class="dato"><strong>Requisitos:</strong><br>${esc(convocatoria.requisitos)}</div>` : ''}
-            ${fechaLimite ? `<div class="dato"><strong>Fecha límite:</strong> ${esc(fechaLimite)}</div>` : ''}
-            <a href="${APP_URL}/perfil.html" class="btn">Ver convocatoria completa</a>
-            <hr>
-            <p style="font-size:13px;color:#888">Recibes este correo porque formas parte de nuestra base de actores.</p>
-        `);
-        try {
-            await transporter.sendMail({
+    // Envío en lotes paralelos: LOTE correos simultáneos, evita saturar el servidor SMTP
+    const LOTE = 10;
+    let enviados = 0, fallidos = 0;
+
+    for (let i = 0; i < actores.length; i += LOTE) {
+        const lote = actores.slice(i, i + LOTE).filter(a => a.email);
+        await Promise.allSettled(lote.map(actor => {
+            const html = baseHTML(`
+                <p>Hola <strong>${esc(actor.nombre)}</strong>,</p>
+                <p>Tenemos una nueva convocatoria que puede interesarte:</p>
+                <div class="dato"><strong>${esc(convocatoria.titulo)}</strong></div>
+                ${convocatoria.descripcion ? `<p>${esc(convocatoria.descripcion)}</p>` : ''}
+                ${convocatoria.requisitos ? `<div class="dato"><strong>Requisitos:</strong><br>${esc(convocatoria.requisitos)}</div>` : ''}
+                ${fechaLimite ? `<div class="dato"><strong>Fecha límite:</strong> ${esc(fechaLimite)}</div>` : ''}
+                <a href="${APP_URL}/perfil.html" class="btn">Ver convocatoria completa</a>
+                <hr>
+                <p style="font-size:13px;color:#888">Recibes este correo porque formas parte de nuestra base de actores.</p>
+            `);
+            return transporter.sendMail({
                 from: FROM,
                 to: actor.email,
-                subject: `Nueva convocatoria: ${convocatoria.titulo}`,
+                subject: `Nueva convocatoria: ${esc(convocatoria.titulo)}`,
                 html
-            });
-        } catch (e) {
-            console.error(`Mailer convocatoria (${actor.email}):`, e.message);
-        }
+            }).then(() => { enviados++; })
+              .catch(e => {
+                  fallidos++;
+                  console.error(`Mailer convocatoria (${actor.email}):`, e.message);
+              });
+        }));
     }
+    console.log(`✅ Convocatoria "${convocatoria.titulo}": ${enviados} enviados, ${fallidos} fallidos de ${actores.length} actores.`);
 }
 
 // ==================== 3. CONTRATO SUBIDO (aviso al admin) ====================
