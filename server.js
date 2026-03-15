@@ -528,7 +528,10 @@ async function manejarUsuarioOAuth(email, nombre, fotoUrl, idColumn, idValue) {
     );
     if (porId.length > 0) {
         const actor = porId[0];
-        const token = jwt.sign({ id: actor.id, email: actor.email }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign(
+            { id: actor.id, email: actor.email, is_admin: actor.is_admin === 1, is_casting: actor.is_casting === 1 },
+            JWT_SECRET, { expiresIn: '7d' }
+        );
         return { token, actor, perfil_completo: actor.perfil_completo === 1 };
     }
 
@@ -539,7 +542,10 @@ async function manejarUsuarioOAuth(email, nombre, fotoUrl, idColumn, idValue) {
     if (porEmail.length > 0) {
         const actor = porEmail[0];
         await promisePool.query(`UPDATE actores SET ${idColumn} = ? WHERE id = ?`, [idValue, actor.id]);
-        const token = jwt.sign({ id: actor.id, email: actor.email }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign(
+            { id: actor.id, email: actor.email, is_admin: actor.is_admin === 1, is_casting: actor.is_casting === 1 },
+            JWT_SECRET, { expiresIn: '7d' }
+        );
         return { token, actor, perfil_completo: actor.perfil_completo === 1 };
     }
 
@@ -550,8 +556,11 @@ async function manejarUsuarioOAuth(email, nombre, fotoUrl, idColumn, idValue) {
          VALUES (?, ?, ?, ?, ?, 0, NOW())`,
         [nombre, email, fotoUrl || null, idValue, proveedor]
     );
-    const nuevoActor = { id: result.insertId, nombre, email, foto_perfil: fotoUrl || null };
-    const token = jwt.sign({ id: nuevoActor.id, email: nuevoActor.email }, JWT_SECRET, { expiresIn: '7d' });
+    const nuevoActor = { id: result.insertId, nombre, email, foto_perfil: fotoUrl || null, is_admin: false, is_casting: false };
+    const token = jwt.sign(
+        { id: nuevoActor.id, email: nuevoActor.email, is_admin: false, is_casting: false },
+        JWT_SECRET, { expiresIn: '7d' }
+    );
     return { token, actor: nuevoActor, perfil_completo: false };
 }
 
@@ -592,7 +601,7 @@ app.post('/api/auth/microsoft', async (req, res) => {
                 response.on('data', chunk => data += chunk);
                 response.on('end', () => {
                     if (response.statusCode === 200) resolve(JSON.parse(data));
-                    else reject(new Error(`Graph API error: ${response.statusCode}`));
+                    else reject(new Error(`Graph API error: ${response.statusCode} - ${data}`));
                 });
             });
             request.on('error', reject);
@@ -1636,8 +1645,12 @@ app.post('/api/admin/test-email', verificarToken, verificarAdmin, async (req, re
     }
 });
 
-// Iniciar servidor
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
-});
+// Iniciar servidor solo si no estamos en modo test
+if (process.env.NODE_ENV !== 'test') {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Servidor corriendo en puerto ${PORT}`);
+    });
+}
+
+module.exports = { app, promisePool };

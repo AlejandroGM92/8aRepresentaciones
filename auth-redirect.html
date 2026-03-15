@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script>
+    // Esta página es usada por MSAL como redirect URI del popup.
+    // Maneja la respuesta de Microsoft y cierra el popup automáticamente.
+    if (typeof msal !== 'undefined') {
+        const instance = new msal.PublicClientApplication({
+            auth: {
+                clientId: '8d2465ec-aa96-44c4-860f-5fd08696e89a',
+                authority: 'https://login.microsoftonline.com/common',
+                redirectUri: window.location.origin + '/auth-redirect.html'
+            }
+        });
+        instance.handleRedirectPromise().catch(console.error);
+    }
+</script>
+</body>
+</html>

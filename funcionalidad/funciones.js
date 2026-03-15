@@ -125,7 +125,15 @@ const MICROSOFT_CLIENT_ID = '8d2465ec-aa96-44c4-860f-5fd08696e89a';
 async function manejarRespuestaOAuth(data) {
     localStorage.setItem('token', data.token);
     localStorage.setItem('actor', JSON.stringify(data.actor));
-    window.location.href = data.perfil_completo ? 'perfil.html' : 'completar-perfil.html';
+    if (data.actor.is_admin) {
+        window.location.href = 'admin.html';
+    } else if (data.actor.is_casting) {
+        window.location.href = 'casting.html';
+    } else if (data.perfil_completo) {
+        window.location.href = 'perfil.html';
+    } else {
+        window.location.href = 'completar-perfil.html';
+    }
 }
 
 // Google Sign-In
@@ -161,21 +169,28 @@ document.getElementById('googleLogin').addEventListener('click', function() {
 // Microsoft Sign-In
 let msalInstance;
 
-function getMsalInstance() {
+let msalReady = false;
+
+async function getMsalInstance() {
     if (msalInstance) return msalInstance;
     if (typeof msal === 'undefined') return null;
     msalInstance = new msal.PublicClientApplication({
         auth: {
             clientId: MICROSOFT_CLIENT_ID,
             authority: 'https://login.microsoftonline.com/common',
-            redirectUri: window.location.origin
+            redirectUri: window.location.origin + '/auth-redirect.html'
         }
     });
+    // Limpiar cualquier interacción pendiente de sesiones anteriores
+    if (!msalReady) {
+        await msalInstance.handleRedirectPromise().catch(() => {});
+        msalReady = true;
+    }
     return msalInstance;
 }
 
 document.getElementById('microsoftLogin').addEventListener('click', async function() {
-    const instance = getMsalInstance();
+    const instance = await getMsalInstance();
     if (!instance) return alert('La librería de Microsoft no cargó. Verifica tu conexión a internet e intenta de nuevo.');
     try {
         const loginResponse = await instance.loginPopup({ scopes: ['user.read'] });

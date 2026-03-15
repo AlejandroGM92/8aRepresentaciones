@@ -993,6 +993,148 @@ async function cargarConvocatoriasActor() {
     }
 }
 
+// ==================== TOUR DE BIENVENIDA ====================
+
+(function initTour() {
+    const TOUR_KEY = '8a_tour_done';
+
+    const pasos = [
+        {
+            icon: '🎬',
+            titulo: '¡Bienvenido a 8a Representaciones!',
+            cuerpo: (nombre) => `Hola <strong>${nombre}</strong>, nos alegra que formes parte de nuestra plataforma. Este breve tour te mostrará cómo sacarle el máximo provecho.`
+        },
+        {
+            icon: '👤',
+            titulo: 'Completa tu perfil',
+            cuerpo: () => 'En la pestaña <strong>Perfil</strong> puedes agregar tu información personal: medidas, color de ojos y cabello, fecha de nacimiento, ciudad y país. Mientras más completo esté tu perfil, más oportunidades tendrás.'
+        },
+        {
+            icon: '🎭',
+            titulo: 'Habilidades y acentos',
+            cuerpo: () => 'En la sección de <strong>Habilidades</strong> marca todo lo que sabes hacer: canto, baile, combate escénico, manejo de vehículos, etc. También registra los acentos que manejas para aparecer en búsquedas especializadas.'
+        },
+        {
+            icon: '📅',
+            titulo: 'Fechas de no disponibilidad',
+            cuerpo: () => 'Si tienes compromisos en fechas concretas, agrégalas en <strong>Fechas no disponibles</strong>. Esto ayuda a los directores de casting a saber cuándo puedes ser contactado.'
+        },
+        {
+            icon: '📢',
+            titulo: 'Convocatorias',
+            cuerpo: () => 'En la pestaña <strong>Convocatorias</strong> verás todas las que están activas. Cuando se publique una nueva que coincida con tu perfil, te llegará una notificación por correo electrónico.'
+        },
+        {
+            icon: '🚀',
+            titulo: '¡Listo para empezar!',
+            cuerpo: () => 'Ya conoces lo esencial. Ahora completa tu información para que los directores de casting te encuentren. ¡Mucho éxito en tus audiciones!'
+        }
+    ];
+
+    let pasoActual = 0;
+
+    function getNombre() {
+        return document.getElementById('nombreActor')?.textContent?.trim() || 'Actor';
+    }
+
+    function renderPaso(i) {
+        const paso = pasos[i];
+        document.getElementById('tourIcon').textContent = paso.icon;
+        document.getElementById('tourTitle').textContent = paso.titulo;
+        document.getElementById('tourBody').innerHTML = paso.cuerpo(getNombre());
+
+        // Barra de progreso
+        const pct = ((i + 1) / pasos.length) * 100;
+        document.getElementById('tourProgress').style.width = pct + '%';
+
+        // Dots
+        const dots = document.getElementById('tourDots');
+        dots.innerHTML = pasos.map((_, idx) =>
+            `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 3px;background:${idx === i ? '#910909' : '#ddd'};transition:background .2s"></span>`
+        ).join('');
+
+        // Botón anterior
+        const btnPrev = document.getElementById('tourPrev');
+        btnPrev.style.display = i === 0 ? 'none' : 'inline-block';
+
+        // Botón siguiente / finalizar
+        const btnNext = document.getElementById('tourNext');
+        btnNext.textContent = i === pasos.length - 1 ? 'Finalizar ✓' : 'Siguiente →';
+    }
+
+    function mostrarTour() {
+        pasoActual = 0;
+        renderPaso(0);
+        const overlay = document.getElementById('tourOverlay');
+        overlay.style.display = 'flex';
+        // Forzar reflow para que la animación CSS arranque
+        requestAnimationFrame(() => overlay.classList.add('show'));
+    }
+
+    function cerrarTour() {
+        localStorage.setItem(TOUR_KEY, '1');
+        const overlay = document.getElementById('tourOverlay');
+        overlay.classList.remove('show');
+        setTimeout(() => { overlay.style.display = 'none'; }, 300);
+    }
+
+    function bindEventos() {
+        document.getElementById('tourNext').addEventListener('click', () => {
+            if (pasoActual < pasos.length - 1) {
+                pasoActual++;
+                renderPaso(pasoActual);
+            } else {
+                cerrarTour();
+            }
+        });
+
+        document.getElementById('tourPrev').addEventListener('click', () => {
+            if (pasoActual > 0) {
+                pasoActual--;
+                renderPaso(pasoActual);
+            }
+        });
+
+        document.getElementById('tourSkip').addEventListener('click', cerrarTour);
+
+        // Cerrar al hacer clic fuera de la tarjeta
+        document.getElementById('tourOverlay').addEventListener('click', function(e) {
+            if (e.target === this) cerrarTour();
+        });
+    }
+
+    // Mostrar el tour solo si no se ha completado antes
+    function checkMostrarTour() {
+        if (!localStorage.getItem(TOUR_KEY)) {
+            // Esperar a que el nombre del actor se cargue de la API
+            const intervalo = setInterval(() => {
+                const nombre = getNombre();
+                if (nombre && nombre !== 'Actor') {
+                    clearInterval(intervalo);
+                    mostrarTour();
+                }
+            }, 300);
+            // Máximo 3 segundos de espera
+            setTimeout(() => clearInterval(intervalo), 3000);
+        }
+    }
+
+    // Exponer función para ver el tour de nuevo (útil para el botón "Ver tour" si se agrega después)
+    window.verTourNuevamente = function() {
+        localStorage.removeItem(TOUR_KEY);
+        mostrarTour();
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => { bindEventos(); checkMostrarTour(); });
+    } else {
+        bindEventos();
+        checkMostrarTour();
+    }
+})();
+
+// ==================== CONVOCATORIAS (ACTOR) - POSTULAR ====================
+
 window.postularse = async function(convId) {
     const seleccionado = document.querySelector(`input[name="personaje_${convId}"]:checked`);
     const msg = document.getElementById(`msgPostular_${convId}`);
