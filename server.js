@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const mysql = require('mysql2');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -22,6 +23,9 @@ if (!fs.existsSync('uploads/contratos')) fs.mkdirSync('uploads/contratos', { rec
 
 const app = express();
 app.set('trust proxy', 1); // Necesario para rate limiting detrás de proxy/Hostinger
+
+// Compresión gzip/brotli de respuestas HTTP
+app.use(compression());
 
 // Cabeceras de seguridad HTTP (clickjacking, MIME sniffing, XSS, etc.)
 app.use(helmet({
@@ -131,7 +135,7 @@ const db = mysql.createPool({
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || '8a_representaciones',
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 25, // aumentado de 10 → 25 para soportar mayor concurrencia
     queueLimit: 0
 });
 

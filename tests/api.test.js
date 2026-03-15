@@ -189,3 +189,166 @@ describe('Rate limiting en /api/login', () => {
         expect(bloqueados.length).toBeGreaterThan(0);
     }, 30000);
 });
+
+// ==================== MEJORAS APLICADAS ====================
+
+describe('Mejoras - Compresión HTTP', () => {
+    test('respuestas grandes vienen comprimidas (gzip)', async () => {
+        const res = await request(app)
+            .get('/api/admin/actores')
+            .set('Authorization', `Bearer ${tokenAdmin()}`)
+            .set('Accept-Encoding', 'gzip, deflate');
+        const encoding = res.headers['content-encoding'];
+        const bytes = JSON.stringify(res.body).length;
+        console.log(`\n[COMPRESIÓN] Content-Encoding: ${encoding || 'sin comprimir'}`);
+        console.log(`  Tamaño body decodificado: ${bytes} bytes`);
+        expect(res.status).toBe(200);
+        // Con compression activo las respuestas > 1KB deben venir comprimidas
+        expect(encoding).toBe('gzip');
+    });
+});
+
+// ==================== ESCALABILIDAD ====================
+
+describe('Escalabilidad - Concurrencia en rutas protegidas', () => {
+    test('50 peticiones simultáneas a GET /api/admin/actores', async () => {
+        const inicio = Date.now();
+        const peticiones = Array.from({ length: 50 }, () =>
+            request(app)
+                .get('/api/admin/actores')
+                .set('Authorization', `Bearer ${tokenAdmin()}`)
+        );
+        const resultados = await Promise.all(peticiones);
+        const fin = Date.now();
+        const tiempoTotal = fin - inicio;
+        const exitosas = resultados.filter(r => r.status === 200).length;
+        const fallidas  = resultados.filter(r => r.status >= 500).length;
+        const tiempos   = resultados.map(r => r.headers['x-response-time'] ? parseInt(r.headers['x-response-time']) : null).filter(Boolean);
+
+        console.log(`\n[ESCALABILIDAD] 50 peticiones simultáneas /api/admin/actores`);
+        console.log(`  Exitosas   : ${exitosas}`);
+        console.log(`  Fallidas   : ${fallidas}`);
+        console.log(`  Tiempo total: ${tiempoTotal}ms`);
+        console.log(`  Promedio   : ${(tiempoTotal / 50).toFixed(1)}ms por petición`);
+
+        expect(fallidas).toBe(0);
+        expect(exitosas).toBe(50);
+    }, 60000);
+
+    test('30 peticiones simultáneas a GET /api/convocatorias', async () => {
+        const inicio = Date.now();
+        const peticiones = Array.from({ length: 30 }, () =>
+            request(app)
+                .get('/api/convocatorias')
+                .set('Authorization', `Bearer ${tokenActor()}`)
+        );
+        const resultados = await Promise.all(peticiones);
+        const fin = Date.now();
+        const tiempoTotal = fin - inicio;
+        const exitosas = resultados.filter(r => r.status === 200).length;
+        const fallidas  = resultados.filter(r => r.status >= 500).length;
+
+        console.log(`\n[ESCALABILIDAD] 30 peticiones simultáneas /api/convocatorias`);
+        console.log(`  Exitosas   : ${exitosas}`);
+        console.log(`  Fallidas   : ${fallidas}`);
+        console.log(`  Tiempo total: ${tiempoTotal}ms`);
+        console.log(`  Promedio   : ${(tiempoTotal / 30).toFixed(1)}ms por petición`);
+
+        expect(fallidas).toBe(0);
+        expect(exitosas).toBe(30);
+    }, 60000);
+
+    test('20 peticiones simultáneas a GET /api/casting/actores', async () => {
+        const tokenCasting = jwt.sign(
+            { id: 1, email: 'casting@test.com', is_admin: false, is_casting: true },
+            JWT_SECRET, { expiresIn: '1h' }
+        );
+        const inicio = Date.now();
+        const peticiones = Array.from({ length: 20 }, () =>
+            request(app)
+                .get('/api/casting/actores')
+                .set('Authorization', `Bearer ${tokenCasting}`)
+        );
+        const resultados = await Promise.all(peticiones);
+        const fin = Date.now();
+        const tiempoTotal = fin - inicio;
+        const exitosas = resultados.filter(r => r.status === 200).length;
+        const fallidas  = resultados.filter(r => r.status >= 500).length;
+
+        console.log(`\n[ESCALABILIDAD] 20 peticiones simultáneas /api/casting/actores`);
+        console.log(`  Exitosas   : ${exitosas}`);
+        console.log(`  Fallidas   : ${fallidas}`);
+        console.log(`  Tiempo total: ${tiempoTotal}ms`);
+        console.log(`  Promedio   : ${(tiempoTotal / 20).toFixed(1)}ms por petición`);
+
+        expect(fallidas).toBe(0);
+        expect(exitosas).toBe(20);
+    }, 60000);
+});
+
+// ==================== ROBUSTEZ - ENTRADAS MALICIOSAS ====================
+
+describe('Robustez - Entradas maliciosas', () => {
+    test('rechaza SQL injection en login', async () => {
+        const inicio = Date.now();
+        const res = await request(app).post('/api/login').send({
+            email: "' OR '1'='1",
+            password: "' OR '1'='1"
+        });
+        const fin = Date.now();
+        console.log(`\n[ROBUSTEZ] SQL injection → status ${res.status} en ${fin - inicio}ms`);
+        // 400/401 = rechazado por validación, 429 = bloqueado por rate limiter (ambos son correctos)
+        expect([400, 401, 429]).toContain(res.status);
+        expect(res.status).not.toBe(200);
+    });
+
+    test('rechaza payload excesivamente largo', async () => {
+        const inicio = Date.now();
+        const res = await request(app).post('/api/registro').send({
+            nombre: 'A'.repeat(10000),
+            email: 'payload_largo@test.com',
+            password: 'Test1234!'
+        });
+        const fin = Date.now();
+        console.log(`\n[ROBUSTEZ] Payload 10000 chars → status ${res.status} en ${fin - inicio}ms`);
+        // 400 = validación, 413 = payload too large, 429 = rate limiter (todos correctos)
+        expect(res.status).not.toBe(200);
+    });
+
+    test('rechaza token JWT manipulado', async () => {
+        const tokenFalsificado = tokenActor(999) + 'xmanipuladox';
+        const inicio = Date.now();
+        const res = await request(app)
+            .get('/api/perfil')
+            .set('Authorization', `Bearer ${tokenFalsificado}`);
+        const fin = Date.now();
+        console.log(`\n[ROBUSTEZ] JWT manipulado → status ${res.status} en ${fin - inicio}ms`);
+        expect(res.status).toBe(401);
+    });
+
+    test('actor no puede acceder a ruta de admin (escalada de privilegios)', async () => {
+        const inicio = Date.now();
+        const res = await request(app)
+            .get('/api/admin/actores')
+            .set('Authorization', `Bearer ${tokenActor()}`);
+        const fin = Date.now();
+        console.log(`\n[ROBUSTEZ] Escalada privilegios → status ${res.status} en ${fin - inicio}ms`);
+        expect(res.status).toBe(403);
+    });
+
+    test('rate limiter bloquea spam en forgot-password (22 intentos)', async () => {
+        const inicio = Date.now();
+        const peticiones = Array.from({ length: 22 }, () =>
+            request(app).post('/api/auth/forgot-password').send({ email: 'spam_reset@test.com' })
+        );
+        const resultados = await Promise.all(peticiones);
+        const fin = Date.now();
+        const bloqueadas = resultados.filter(r => r.status === 429);
+        const pasaron    = resultados.filter(r => r.status !== 429);
+        console.log(`\n[ROBUSTEZ] Rate limit forgot-password`);
+        console.log(`  Bloqueadas (429): ${bloqueadas.length}`);
+        console.log(`  Pasaron         : ${pasaron.length}`);
+        console.log(`  Tiempo total    : ${fin - inicio}ms`);
+        expect(bloqueadas.length).toBeGreaterThan(0);
+    }, 30000);
+});
