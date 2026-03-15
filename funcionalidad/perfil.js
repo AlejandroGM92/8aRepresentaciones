@@ -1133,6 +1133,128 @@ async function cargarConvocatoriasActor() {
     }
 })();
 
+// ==================== 2FA SETUP ====================
+
+async function cargar2FAStatus() {
+    try {
+        const res = await fetch(`${API_URL}/auth/2fa/status`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.totp_enabled) {
+            document.getElementById('seccion2FADesactivado').style.display = 'none';
+            document.getElementById('seccion2FAActivado').style.display = 'block';
+        } else {
+            document.getElementById('seccion2FADesactivado').style.display = 'block';
+            document.getElementById('seccion2FAActivado').style.display = 'none';
+        }
+    } catch { /* silencioso */ }
+}
+
+document.getElementById('btn2FAConfigurar').addEventListener('click', async function() {
+    this.textContent = 'Generando QR...';
+    this.disabled = true;
+    try {
+        const res = await fetch(`${API_URL}/auth/2fa/setup`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+            document.getElementById('qr2FA').src = data.qr;
+            document.getElementById('secret2FA').textContent = data.secret;
+            document.getElementById('paso2FAQr').style.display = 'block';
+            this.style.display = 'none';
+        } else {
+            mostrarNotificacion(data.error || 'Error al generar QR', 'error');
+            this.textContent = 'Activar 2FA';
+            this.disabled = false;
+        }
+    } catch {
+        mostrarNotificacion('Error de conexión', 'error');
+        this.textContent = 'Activar 2FA';
+        this.disabled = false;
+    }
+});
+
+document.getElementById('btnActivar2FA').addEventListener('click', async function() {
+    const codigo = document.getElementById('codigo2FAActivar').value.trim();
+    const errorEl = document.getElementById('error2FAActivar');
+    if (!codigo || codigo.length !== 6) {
+        errorEl.textContent = 'Ingresa el código de 6 dígitos';
+        errorEl.style.display = 'block';
+        return;
+    }
+    this.textContent = 'Activando...';
+    this.disabled = true;
+    try {
+        const res = await fetch(`${API_URL}/auth/2fa/activate`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            mostrarNotificacion('✅ 2FA activado exitosamente', 'success');
+            await cargar2FAStatus();
+        } else {
+            errorEl.textContent = data.error || 'Código incorrecto';
+            errorEl.style.display = 'block';
+            document.getElementById('codigo2FAActivar').value = '';
+            this.textContent = 'Confirmar y activar';
+            this.disabled = false;
+        }
+    } catch {
+        errorEl.textContent = 'Error de conexión';
+        errorEl.style.display = 'block';
+        this.textContent = 'Confirmar y activar';
+        this.disabled = false;
+    }
+});
+
+document.getElementById('btnDesactivar2FA').addEventListener('click', async function() {
+    const codigo = document.getElementById('codigo2FADesactivar').value.trim();
+    const errorEl = document.getElementById('error2FADesactivar');
+    if (!codigo || codigo.length !== 6) {
+        errorEl.textContent = 'Ingresa el código de 6 dígitos';
+        errorEl.style.display = 'block';
+        return;
+    }
+    this.textContent = 'Desactivando...';
+    this.disabled = true;
+    try {
+        const res = await fetch(`${API_URL}/auth/2fa/disable`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ codigo })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            mostrarNotificacion('2FA desactivado', 'success');
+            document.getElementById('codigo2FADesactivar').value = '';
+            await cargar2FAStatus();
+        } else {
+            errorEl.textContent = data.error || 'Código incorrecto';
+            errorEl.style.display = 'block';
+            document.getElementById('codigo2FADesactivar').value = '';
+            this.textContent = 'Desactivar 2FA';
+            this.disabled = false;
+        }
+    } catch {
+        errorEl.textContent = 'Error de conexión';
+        errorEl.style.display = 'block';
+        this.textContent = 'Desactivar 2FA';
+        this.disabled = false;
+    }
+});
+
+// Cargar estado 2FA cuando se activa la pestaña de seguridad
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    if (btn.dataset.tab === 'seguridad') {
+        btn.addEventListener('click', cargar2FAStatus);
+    }
+});
+
 // ==================== CONVOCATORIAS (ACTOR) - POSTULAR ====================
 
 window.postularse = async function(convId) {

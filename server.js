@@ -3,6 +3,7 @@ const mysql = require('mysql2');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const multer = require('multer');
 const path = require('path');
@@ -11,6 +12,8 @@ const { OAuth2Client } = require('google-auth-library');
 const fs = require('fs');
 const crypto = require('crypto');
 const XLSX = require('xlsx');
+const speakeasy = require('speakeasy');
+const QRCode = require('qrcode');
 const mailer = require('./mailer');
 require('dotenv').config();
 
@@ -18,6 +21,12 @@ if (!fs.existsSync('uploads/contratos')) fs.mkdirSync('uploads/contratos', { rec
 
 const app = express();
 app.set('trust proxy', 1); // Necesario para rate limiting detrás de proxy/Hostinger
+
+// Cabeceras de seguridad HTTP (clickjacking, MIME sniffing, XSS, etc.)
+app.use(helmet({
+    contentSecurityPolicy: false, // Se desactiva CSP para no romper CDN scripts (Google/Microsoft)
+    crossOriginEmbedderPolicy: false
+}));
 
 // Middleware
 // En producción restringe CORS al dominio configurado en APP_URL.
@@ -114,6 +123,20 @@ const db = mysql.createPool({
 // Promisify para usar async/await
 const promisePool = db.promise();
 
+// ==================== VALIDACIÓN DE CONTRASEÑA ====================
+
+function validarPassword(password) {
+    if (!password || password.length < 8)
+        return 'La contraseña debe tener al menos 8 caracteres';
+    if (!/[A-Z]/.test(password))
+        return 'La contraseña debe incluir al menos una letra mayúscula';
+    if (!/[0-9]/.test(password))
+        return 'La contraseña debe incluir al menos un número';
+    if (!/[!@#$%^&*()_\-+={}[\]|:;"\'<>,.?/\\~`]/.test(password))
+        return 'La contraseña debe incluir al menos un símbolo (!@#$%...)';
+    return null;
+}
+
 // Secret para JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_secreto_super_seguro_cambialo_en_produccion';
 if (!process.env.JWT_SECRET) {
@@ -188,10 +211,9 @@ app.post('/api/registro', authLimiter, async (req, res) => {
             return res.status(400).json({ error: 'Email inválido' });
         }
 
-        // Validar longitud de contraseña
-        if (password.length < 6) {
-            return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
-        }
+        // Validar contraseña fuerte
+        const errPass = validarPassword(password);
+        if (errPass) return res.status(400).json({ error: errPass });
 
         // Verificar si el email ya existe
         const [existingUser] = await promisePool.query(
@@ -226,6 +248,7 @@ app.post('/api/registro', authLimiter, async (req, res) => {
 
         // Correo de bienvenida en background
         mailer.enviarBienvenida({ nombre, email }).catch(e => console.error('Mailer bienvenida:', e));
+        await registrarAuditoria(result.insertId, 'registro', `Nuevo actor registrado: ${email}`, req.ip);
 
         res.status(201).json({
             mensaje: 'Actor registrado exitosamente',
@@ -255,6 +278,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
         );
 
         if (actors.length === 0) {
+            await registrarAuditoria(null, 'login_fallido', `Email no encontrado: ${email}`, req.ip);
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
@@ -264,6 +288,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
         const passwordMatch = await bcrypt.compare(password, actor.password);
 
         if (!passwordMatch) {
+            await registrarAuditoria(actor.id, 'login_fallido', 'Contraseña incorrecta', req.ip);
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
@@ -273,6 +298,14 @@ app.post('/api/login', authLimiter, async (req, res) => {
             JWT_SECRET,
             { expiresIn: '7d' }
         );
+
+        await registrarAuditoria(actor.id, 'login_exitoso', `Sesión iniciada: ${actor.email}`, req.ip);
+
+        // Si tiene 2FA activo, retornar token temporal para completar verificación
+        if (actor.totp_enabled) {
+            const tempToken = jwt.sign({ id: actor.id, scope: '2fa' }, JWT_SECRET, { expiresIn: '5m' });
+            return res.json({ require_2fa: true, temp_token: tempToken });
+        }
 
         res.json({
             mensaje: 'Login exitoso',
@@ -482,6 +515,8 @@ app.put('/api/perfil/password', verificarToken, async (req, res) => {
         if (!passwordActual || !passwordNueva) {
             return res.status(400).json({ error: 'Se requieren ambas contraseñas' });
         }
+        const errPassNueva = validarPassword(passwordNueva);
+        if (errPassNueva) return res.status(400).json({ error: errPassNueva });
 
         // Obtener contraseña actual del usuario
         const [actors] = await promisePool.query(
@@ -507,6 +542,7 @@ app.put('/api/perfil/password', verificarToken, async (req, res) => {
             'UPDATE actores SET password = ? WHERE id = ?',
             [hashedPassword, req.userId]
         );
+        await registrarAuditoria(req.userId, 'cambio_contrasena', 'Contraseña actualizada por el usuario', req.ip);
 
         res.json({ mensaje: 'Contraseña actualizada exitosamente' });
 
@@ -515,6 +551,17 @@ app.put('/api/perfil/password', verificarToken, async (req, res) => {
         res.status(500).json({ error: 'Error al cambiar la contraseña' });
     }
 });
+
+// ==================== AUDITORÍA ====================
+
+async function registrarAuditoria(actorId, accion, detalle, ip) {
+    try {
+        await promisePool.query(
+            'INSERT INTO audit_log (actor_id, accion, detalle, ip) VALUES (?, ?, ?, ?)',
+            [actorId || null, accion, detalle || null, ip || null]
+        );
+    } catch { /* No bloquear la app si el log falla */ }
+}
 
 // ==================== OAUTH ====================
 
@@ -617,6 +664,124 @@ app.post('/api/auth/microsoft', async (req, res) => {
     } catch (error) {
         console.error('Error Microsoft OAuth:', error);
         res.status(401).json({ error: 'Token de Microsoft inválido' });
+    }
+});
+
+// ==================== 2FA (TOTP) ====================
+
+// Generar QR para activar 2FA
+app.get('/api/auth/2fa/setup', verificarToken, async (req, res) => {
+    try {
+        const [[actor]] = await promisePool.query('SELECT nombre, email, totp_enabled FROM actores WHERE id=?', [req.userId]);
+        if (!actor) return res.status(404).json({ error: 'Actor no encontrado' });
+        if (actor.totp_enabled) return res.status(400).json({ error: 'El 2FA ya está activado' });
+
+        const secret = speakeasy.generateSecret({ name: `8a Representaciones (${actor.email})`, length: 20 });
+        // Guardar secreto temporal (no activado aún) hasta que el usuario verifique
+        await promisePool.query('UPDATE actores SET totp_secret=? WHERE id=?', [secret.base32, req.userId]);
+
+        const qrUrl = await QRCode.toDataURL(secret.otpauth_url);
+        res.json({ qr: qrUrl, secret: secret.base32 });
+    } catch (error) {
+        console.error('Error 2FA setup:', error);
+        res.status(500).json({ error: 'Error al generar 2FA' });
+    }
+});
+
+// Activar 2FA verificando primer código TOTP
+app.post('/api/auth/2fa/activate', verificarToken, async (req, res) => {
+    try {
+        const { codigo } = req.body;
+        if (!codigo) return res.status(400).json({ error: 'Código requerido' });
+
+        const [[actor]] = await promisePool.query('SELECT totp_secret FROM actores WHERE id=?', [req.userId]);
+        if (!actor || !actor.totp_secret) return res.status(400).json({ error: 'Primero genera el QR de configuración' });
+
+        const valido = speakeasy.totp.verify({ secret: actor.totp_secret, encoding: 'base32', token: codigo, window: 1 });
+        if (!valido) return res.status(400).json({ error: 'Código incorrecto. Verifica tu app autenticadora.' });
+
+        await promisePool.query('UPDATE actores SET totp_enabled=1 WHERE id=?', [req.userId]);
+        await registrarAuditoria(req.userId, '2fa_activado', 'Autenticación de dos factores activada', req.ip);
+        res.json({ mensaje: '2FA activado exitosamente' });
+    } catch (error) {
+        console.error('Error 2FA activate:', error);
+        res.status(500).json({ error: 'Error al activar 2FA' });
+    }
+});
+
+// Deshabilitar 2FA
+app.post('/api/auth/2fa/disable', verificarToken, async (req, res) => {
+    try {
+        const { codigo } = req.body;
+        if (!codigo) return res.status(400).json({ error: 'Código requerido para deshabilitar 2FA' });
+
+        const [[actor]] = await promisePool.query('SELECT totp_secret, totp_enabled FROM actores WHERE id=?', [req.userId]);
+        if (!actor || !actor.totp_enabled) return res.status(400).json({ error: '2FA no está activado' });
+
+        const valido = speakeasy.totp.verify({ secret: actor.totp_secret, encoding: 'base32', token: codigo, window: 1 });
+        if (!valido) return res.status(400).json({ error: 'Código incorrecto' });
+
+        await promisePool.query('UPDATE actores SET totp_enabled=0, totp_secret=NULL WHERE id=?', [req.userId]);
+        await registrarAuditoria(req.userId, '2fa_deshabilitado', 'Autenticación de dos factores deshabilitada', req.ip);
+        res.json({ mensaje: '2FA deshabilitado exitosamente' });
+    } catch (error) {
+        console.error('Error 2FA disable:', error);
+        res.status(500).json({ error: 'Error al deshabilitar 2FA' });
+    }
+});
+
+// Verificar código TOTP durante login (segundo paso)
+app.post('/api/auth/2fa/verify', async (req, res) => {
+    try {
+        const { temp_token, codigo } = req.body;
+        if (!temp_token || !codigo) return res.status(400).json({ error: 'Token temporal y código requeridos' });
+
+        let decoded;
+        try {
+            decoded = jwt.verify(temp_token, JWT_SECRET);
+        } catch {
+            return res.status(401).json({ error: 'Token temporal inválido o expirado' });
+        }
+        if (decoded.scope !== '2fa') return res.status(401).json({ error: 'Token inválido' });
+
+        const [[actor]] = await promisePool.query(
+            'SELECT id, nombre, email, telefono, foto_perfil, is_admin, is_casting, totp_secret, totp_enabled FROM actores WHERE id=?',
+            [decoded.id]
+        );
+        if (!actor || !actor.totp_enabled) return res.status(400).json({ error: 'Actor no encontrado o 2FA no activo' });
+
+        const valido = speakeasy.totp.verify({ secret: actor.totp_secret, encoding: 'base32', token: codigo, window: 1 });
+        if (!valido) {
+            await registrarAuditoria(actor.id, 'login_2fa_fallido', 'Código TOTP incorrecto', req.ip);
+            return res.status(401).json({ error: 'Código incorrecto' });
+        }
+
+        const token = jwt.sign(
+            { id: actor.id, email: actor.email, is_admin: actor.is_admin === 1, is_casting: actor.is_casting === 1 },
+            JWT_SECRET, { expiresIn: '7d' }
+        );
+        await registrarAuditoria(actor.id, 'login_exitoso_2fa', 'Login completado con 2FA', req.ip);
+        res.json({
+            token,
+            actor: {
+                id: actor.id, nombre: actor.nombre, email: actor.email,
+                telefono: actor.telefono, foto_perfil: actor.foto_perfil,
+                is_admin: actor.is_admin === 1, is_casting: actor.is_casting === 1
+            }
+        });
+    } catch (error) {
+        console.error('Error 2FA verify:', error);
+        res.status(500).json({ error: 'Error al verificar código 2FA' });
+    }
+});
+
+// Estado actual del 2FA del usuario
+app.get('/api/auth/2fa/status', verificarToken, async (req, res) => {
+    try {
+        const [[actor]] = await promisePool.query('SELECT totp_enabled FROM actores WHERE id=?', [req.userId]);
+        res.json({ totp_enabled: actor ? actor.totp_enabled === 1 : false });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al obtener estado 2FA' });
     }
 });
 
@@ -776,7 +941,8 @@ app.post('/api/admin/actores', verificarAdmin, async (req, res) => {
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) return res.status(400).json({ error: 'Email inválido' });
-        if (password.length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+        const errPassAdmin = validarPassword(password);
+        if (errPassAdmin) return res.status(400).json({ error: errPassAdmin });
 
         const [existente] = await promisePool.query('SELECT id FROM actores WHERE email = ?', [email]);
         if (existente.length > 0) return res.status(400).json({ error: 'El email ya está registrado' });
@@ -865,9 +1031,8 @@ app.delete('/api/admin/actores/:id/fotos/:fotoId', verificarAdmin, async (req, r
 app.put('/api/admin/actores/:id/password', verificarAdmin, async (req, res) => {
     try {
         const { nuevaPassword } = req.body;
-        if (!nuevaPassword || nuevaPassword.length < 6) {
-            return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
-        }
+        const errPassReset = validarPassword(nuevaPassword);
+        if (errPassReset) return res.status(400).json({ error: errPassReset });
         const hashed = await bcrypt.hash(nuevaPassword, 10);
         await promisePool.query('UPDATE actores SET password = ? WHERE id = ?', [hashed, req.params.id]);
         res.json({ mensaje: 'Contraseña actualizada exitosamente' });
@@ -1203,7 +1368,8 @@ app.post('/api/casting/registro', async (req, res) => {
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) return res.status(400).json({ error: 'Email inválido' });
-        if (password.length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+        const errPassCasting = validarPassword(password);
+        if (errPassCasting) return res.status(400).json({ error: errPassCasting });
 
         const [existente] = await promisePool.query('SELECT id FROM actores WHERE email = ?', [email]);
         if (existente.length > 0) return res.status(400).json({ error: 'El email ya está registrado' });
@@ -1591,7 +1757,8 @@ app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
     try {
         const { token, password } = req.body;
         if (!token || !password) return res.status(400).json({ error: 'Token y contraseña requeridos' });
-        if (password.length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+        const errPassReset2 = validarPassword(password);
+        if (errPassReset2) return res.status(400).json({ error: errPassReset2 });
 
         const [[actor]] = await promisePool.query(
             'SELECT id FROM actores WHERE reset_token=? AND reset_token_expiry > NOW()', [token]
@@ -1603,6 +1770,7 @@ app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
             'UPDATE actores SET password=?, reset_token=NULL, reset_token_expiry=NULL WHERE id=?',
             [hashed, actor.id]
         );
+        await registrarAuditoria(actor.id, 'reset_contrasena', 'Contraseña restablecida por token', req.ip);
         res.json({ mensaje: 'Contraseña actualizada exitosamente' });
     } catch (error) {
         console.error('Error reset-password:', error);

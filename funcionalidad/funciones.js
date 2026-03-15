@@ -92,10 +92,16 @@ loginForm.addEventListener('submit', async function(e) {
         const data = await response.json();
 
         if (response.ok) {
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('actor', JSON.stringify(data.actor));
-
-            window.location.href = data.actor.is_admin ? 'admin.html' : (data.actor.is_casting ? 'casting.html' : 'perfil.html');
+            if (data.require_2fa) {
+                // Mostrar paso 2FA
+                mostrarPaso2FA(data.temp_token);
+                submitBtn.textContent = 'Iniciar Sesión';
+                submitBtn.disabled = false;
+            } else {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('actor', JSON.stringify(data.actor));
+                window.location.href = data.actor.is_admin ? 'admin.html' : (data.actor.is_casting ? 'casting.html' : 'perfil.html');
+            }
         } else {
             emailError.textContent = data.error || 'Credenciales inválidas';
             showError(emailInput, emailError);
@@ -110,6 +116,71 @@ loginForm.addEventListener('submit', async function(e) {
         submitBtn.textContent = 'Iniciar Sesión';
         submitBtn.disabled = false;
     }
+});
+
+// ==================== FLUJO 2FA LOGIN ====================
+
+function mostrarPaso2FA(tempToken) {
+    document.getElementById('loginForm').style.display = 'none';
+    document.getElementById('dividerSocial').style.display = 'none';
+    document.getElementById('socialLoginBtns').style.display = 'none';
+    document.getElementById('form2FA').style.display = 'block';
+    document.getElementById('totp_codigo').focus();
+    window._tempToken2FA = tempToken;
+}
+
+function ocultarPaso2FA() {
+    document.getElementById('loginForm').style.display = 'block';
+    document.getElementById('dividerSocial').style.display = '';
+    document.getElementById('socialLoginBtns').style.display = '';
+    document.getElementById('form2FA').style.display = 'none';
+    document.getElementById('totp_codigo').value = '';
+    document.getElementById('totp_error').style.display = 'none';
+    window._tempToken2FA = null;
+}
+
+document.getElementById('btn2FAVolver').addEventListener('click', ocultarPaso2FA);
+
+document.getElementById('btn2FAVerificar').addEventListener('click', async function() {
+    const codigo = document.getElementById('totp_codigo').value.trim();
+    const errorEl = document.getElementById('totp_error');
+    if (!codigo || codigo.length !== 6) {
+        errorEl.textContent = 'Ingresa el código de 6 dígitos';
+        errorEl.style.display = 'block';
+        return;
+    }
+    this.textContent = 'Verificando...';
+    this.disabled = true;
+    try {
+        const res = await fetch(`${API_URL}/auth/2fa/verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ temp_token: window._tempToken2FA, codigo })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('actor', JSON.stringify(data.actor));
+            window.location.href = data.actor.is_admin ? 'admin.html' : (data.actor.is_casting ? 'casting.html' : 'perfil.html');
+        } else {
+            errorEl.textContent = data.error || 'Código incorrecto';
+            errorEl.style.display = 'block';
+            document.getElementById('totp_codigo').value = '';
+            document.getElementById('totp_codigo').focus();
+            this.textContent = 'Verificar código';
+            this.disabled = false;
+        }
+    } catch {
+        errorEl.textContent = 'Error de conexión';
+        errorEl.style.display = 'block';
+        this.textContent = 'Verificar código';
+        this.disabled = false;
+    }
+});
+
+// Permitir Enter en el campo de código
+document.getElementById('totp_codigo').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('btn2FAVerificar').click();
 });
 
 document.querySelector('.forgot-password').addEventListener('click', function(e) {

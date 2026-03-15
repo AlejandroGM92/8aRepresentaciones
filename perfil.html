@@ -422,6 +422,44 @@
                     <button type="submit" class="btn-primary">Actualizar Contraseña</button>
                 </form>
             </div>
+
+            <!-- Sección 2FA -->
+            <div class="card" id="card2FA">
+                <h2>Autenticación en dos pasos (2FA)</h2>
+                <p style="color:#666;font-size:14px;margin-bottom:16px">Protege tu cuenta con Google Authenticator o cualquier app TOTP compatible.</p>
+
+                <!-- Estado: desactivado -->
+                <div id="seccion2FADesactivado">
+                    <p style="color:#888;font-size:14px;margin-bottom:16px">🔓 El 2FA está <strong>desactivado</strong>.</p>
+                    <button id="btn2FAConfigurar" class="btn-primary">Activar 2FA</button>
+
+                    <!-- Paso 1: Escanear QR -->
+                    <div id="paso2FAQr" style="display:none;margin-top:20px">
+                        <p style="font-size:14px;color:#444;margin-bottom:10px">1. Escanea este código QR con tu app autenticadora:</p>
+                        <img id="qr2FA" src="" alt="QR 2FA" style="width:200px;height:200px;border:1px solid #eee;border-radius:8px;display:block;margin-bottom:12px">
+                        <p style="font-size:12px;color:#aaa;margin-bottom:16px">O ingresa la clave manual: <code id="secret2FA" style="background:#f5f5f5;padding:2px 6px;border-radius:4px;font-size:12px"></code></p>
+                        <p style="font-size:14px;color:#444;margin-bottom:8px">2. Ingresa el código generado por la app para confirmar:</p>
+                        <div style="display:flex;gap:10px;align-items:center">
+                            <input type="text" id="codigo2FAActivar" placeholder="000000" maxlength="6"
+                                style="width:140px;letter-spacing:6px;font-size:20px;text-align:center;font-weight:700;padding:10px;border:1.5px solid #ddd;border-radius:8px">
+                            <button id="btnActivar2FA" class="btn-primary">Confirmar y activar</button>
+                        </div>
+                        <p id="error2FAActivar" style="color:#c0392b;font-size:13px;display:none;margin-top:8px"></p>
+                    </div>
+                </div>
+
+                <!-- Estado: activado -->
+                <div id="seccion2FAActivado" style="display:none">
+                    <p style="color:#27ae60;font-size:14px;margin-bottom:16px">🔒 El 2FA está <strong>activado</strong>. Tu cuenta está protegida.</p>
+                    <p style="font-size:14px;color:#666;margin-bottom:10px">Para desactivarlo, ingresa el código de tu app autenticadora:</p>
+                    <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+                        <input type="text" id="codigo2FADesactivar" placeholder="000000" maxlength="6"
+                            style="width:140px;letter-spacing:6px;font-size:20px;text-align:center;font-weight:700;padding:10px;border:1.5px solid #ddd;border-radius:8px">
+                        <button id="btnDesactivar2FA" style="padding:10px 20px;background:#c0392b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Desactivar 2FA</button>
+                    </div>
+                    <p id="error2FADesactivar" style="color:#c0392b;font-size:13px;display:none"></p>
+                </div>
+            </div>
         </div>
     </div>
 
