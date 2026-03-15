@@ -744,6 +744,44 @@ function cargarFotos(fotos) {
         </div>`).join('')}`;
 }
 
+window.enviarEnlaceFotos = async function() {
+    const input = document.getElementById('enlaceFotosExtra');
+    const msg = document.getElementById('msgEnlaceFotos');
+    const enlace = input.value.trim();
+
+    msg.style.display = 'none';
+
+    if (!enlace) {
+        msg.textContent = 'Por favor ingresa el enlace de WeTransfer.';
+        msg.style.cssText = 'display:block;color:#c0392b';
+        return;
+    }
+    if (!/^https?:\/\/.+/.test(enlace)) {
+        msg.textContent = 'El enlace debe comenzar con https://';
+        msg.style.cssText = 'display:block;color:#c0392b';
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/perfil/enlace-fotos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+            body: JSON.stringify({ enlace })
+        });
+        if (res.ok) {
+            msg.textContent = '✓ Enlace enviado. Lo revisaremos pronto.';
+            msg.style.cssText = 'display:block;color:#1d6f42';
+            input.value = '';
+        } else {
+            msg.textContent = 'Error al enviar el enlace. Intenta de nuevo.';
+            msg.style.cssText = 'display:block;color:#c0392b';
+        }
+    } catch {
+        msg.textContent = 'Error de conexión. Intenta de nuevo.';
+        msg.style.cssText = 'display:block;color:#c0392b';
+    }
+};
+
 async function eliminarFoto(fotoId) {
     if (!confirm('¿Estás seguro de eliminar esta foto?')) return;
     const token = getToken();

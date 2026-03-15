@@ -551,6 +551,26 @@ app.post('/api/perfil/fotos', verificarToken, upload.single('foto'), async (req,
     }
 });
 
+// Enviar enlace de fotos externas (WeTransfer u otro)
+app.post('/api/perfil/enlace-fotos', verificarToken, async (req, res) => {
+    try {
+        const { enlace } = req.body;
+        if (!enlace || !/^https?:\/\/.+/.test(enlace)) {
+            return res.status(400).json({ error: 'Enlace inválido' });
+        }
+        const [[actor]] = await promisePool.query('SELECT nombre FROM actores WHERE id = ?', [req.userId]);
+        const nombre = actor ? actor.nombre : 'Actor';
+        await promisePool.query(
+            'INSERT INTO notificaciones_admin (actor_id, actor_nombre, detalle) VALUES (?, ?, ?)',
+            [req.userId, nombre, `Enlace de fotos externas: ${enlace}`]
+        );
+        res.json({ mensaje: 'Enlace recibido' });
+    } catch (error) {
+        console.error('Error enlace fotos:', error);
+        res.status(500).json({ error: 'Error al procesar el enlace' });
+    }
+});
+
 // Eliminar foto adicional
 app.delete('/api/perfil/fotos/:id', verificarToken, async (req, res) => {
     try {

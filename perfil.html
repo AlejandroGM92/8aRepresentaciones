@@ -220,6 +220,27 @@
                         <p>No tienes fotos adicionales aún. ¡Agrega tu primera foto!</p>
                     </div>
                 </div>
+
+                <!-- Mensaje de contacto para fotos adicionales -->
+                <div style="margin-top:20px;background:#fff8f0;border:1px solid #f0d9c0;border-radius:12px;padding:16px 20px;font-size:13px;color:#555;line-height:1.7">
+                    <p style="margin:0 0 6px;font-weight:600;color:#333">¿Necesitas enviarnos más fotos?</p>
+                    <p style="margin:0 0 8px">Si ya alcanzaste el límite de fotos o el tamaño del archivo no te lo permite, puedes enviarnos tus fotos de alguna de estas formas:</p>
+                    <ul style="margin:0 0 8px;padding-left:18px">
+                        <li>Sube tus fotos a <a href="https://wetransfer.com" target="_blank" rel="noopener noreferrer" style="color:#910909;font-weight:600">WeTransfer</a> y pega el enlace de descarga aquí abajo.</li>
+                        <li>Envíalas directamente a nuestros correos:
+                            <a href="mailto:casting8a@yahoo.es" style="color:#910909;font-weight:600">casting8a@yahoo.es</a> o
+                            <a href="mailto:actualizaciones8a@8arepresentaciones.com" style="color:#910909;font-weight:600">actualizaciones8a@8arepresentaciones.com</a>
+                        </li>
+                    </ul>
+                    <div style="display:flex;gap:8px;margin-top:10px">
+                        <input type="url" id="enlaceFotosExtra" placeholder="https://we.tl/tu-enlace-de-wetransfer"
+                            style="flex:1;padding:9px 12px;border:1.5px solid #ddd;border-radius:8px;font-size:13px;outline:none">
+                        <button onclick="enviarEnlaceFotos()" style="padding:9px 16px;background:#910909;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;white-space:nowrap;font-size:13px">
+                            Enviar enlace
+                        </button>
+                    </div>
+                    <p id="msgEnlaceFotos" style="display:none;margin:8px 0 0;font-size:12px"></p>
+                </div>
             </div>
         </div>
 
