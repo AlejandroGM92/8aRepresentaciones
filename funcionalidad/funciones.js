@@ -185,7 +185,7 @@ document.getElementById('totp_codigo').addEventListener('keydown', function(e) {
 
 document.querySelector('.forgot-password').addEventListener('click', function(e) {
     e.preventDefault();
-    alert('Recuperación de contraseña - Próximamente');
+    window.location.href = 'forgot-password.html';
 });
 
 // ==================== OAUTH ====================
@@ -207,83 +207,54 @@ async function manejarRespuestaOAuth(data) {
     }
 }
 
-// Google Sign-In
-window.handleGoogleCallback = async function(response) {
-    try {
-        const res = await fetch(`${API_URL}/auth/google`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: response.credential })
-        });
-        const data = await res.json();
-        if (res.ok) {
-            await manejarRespuestaOAuth(data);
-        } else {
-            alert(data.error || 'Error al iniciar sesión con Google');
-        }
-    } catch (error) {
-        alert('Error de conexión con Google');
-    }
-};
-
+// Google Sign-In con redirect nativo (sin dependencia de GSI One Tap)
 document.getElementById('googleLogin').addEventListener('click', function() {
-    if (typeof google === 'undefined' || !google.accounts) {
-        return alert('La librería de Google no cargó. Verifica tu conexión a internet e intenta de nuevo.');
-    }
-    google.accounts.id.initialize({
+    const nonce = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+    sessionStorage.setItem('google_nonce', nonce);
+    sessionStorage.setItem('google_provider', 'google');
+    const params = new URLSearchParams({
         client_id: GOOGLE_CLIENT_ID,
-        callback: window.handleGoogleCallback
+        response_type: 'id_token',
+        redirect_uri: window.location.origin + '/auth-redirect.html',
+        scope: 'openid email profile',
+        nonce: nonce,
+        prompt: 'select_account'
     });
-    google.accounts.id.prompt();
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
 });
 
-// Microsoft Sign-In
-let msalInstance;
+// Microsoft Sign-In con PKCE nativo (sin MSAL)
 
-let msalReady = false;
-
-async function getMsalInstance() {
-    if (msalInstance) return msalInstance;
-    if (typeof msal === 'undefined') return null;
-    msalInstance = new msal.PublicClientApplication({
-        auth: {
-            clientId: MICROSOFT_CLIENT_ID,
-            authority: 'https://login.microsoftonline.com/common',
-            redirectUri: window.location.origin + '/auth-redirect.html'
-        }
-    });
-    // Limpiar cualquier interacción pendiente de sesiones anteriores
-    if (!msalReady) {
-        await msalInstance.handleRedirectPromise().catch(() => {});
-        msalReady = true;
-    }
-    return msalInstance;
+async function generarPKCE() {
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    const verifier = btoa(String.fromCharCode(...array))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    const challenge = btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    return { verifier, challenge };
 }
 
 document.getElementById('microsoftLogin').addEventListener('click', async function() {
-    const instance = await getMsalInstance();
-    if (!instance) return alert('La librería de Microsoft no cargó. Verifica tu conexión a internet e intenta de nuevo.');
     try {
-        const loginResponse = await instance.loginPopup({ scopes: ['user.read'] });
-        const tokenResponse = await instance.acquireTokenSilent({
-            scopes: ['user.read'],
-            account: loginResponse.account
+        const { verifier, challenge } = await generarPKCE();
+        sessionStorage.setItem('ms_pkce_verifier', verifier);
+        sessionStorage.setItem('ms_client_id', MICROSOFT_CLIENT_ID);
+
+        const params = new URLSearchParams({
+            client_id: MICROSOFT_CLIENT_ID,
+            response_type: 'code',
+            redirect_uri: window.location.origin + '/auth-redirect.html',
+            scope: 'openid profile email User.Read',
+            response_mode: 'query',
+            code_challenge: challenge,
+            code_challenge_method: 'S256'
         });
-        const res = await fetch(`${API_URL}/auth/microsoft`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token: tokenResponse.accessToken })
-        });
-        const data = await res.json();
-        if (res.ok) {
-            await manejarRespuestaOAuth(data);
-        } else {
-            alert(data.error || 'Error al iniciar sesión con Microsoft');
-        }
+
+        window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`;
     } catch (error) {
         console.error('Error Microsoft:', error);
-        if (error.errorCode !== 'user_cancelled') {
-            alert('Error al iniciar sesión con Microsoft');
-        }
+        alert('Error al iniciar sesión con Microsoft');
     }
 });

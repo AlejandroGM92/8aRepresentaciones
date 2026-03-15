@@ -204,6 +204,7 @@ function cargarAcentos(perfil) {
 // ==================== FECHAS NO DISPONIBLES ====================
 
 let fechasNoDisponibles = [];
+let _biografiaActual = '';
 
 function renderFechas() {
     const lista = document.getElementById('listaFechas');
@@ -472,7 +473,7 @@ function llenarFormulario(perfil) {
     document.getElementById('tallaCamiseta').value     = perfil.talla_camiseta || '';
     document.getElementById('tallaPantalon').value     = perfil.talla_pantalon || '';
     document.getElementById('tallaZapatos').value      = perfil.talla_zapatos || '';
-    document.getElementById('biografia').value         = perfil.biografia || '';
+    _biografiaActual = perfil.biografia || '';
 
     // Edad aparente
     document.getElementById('edadAparenteMin').value = perfil.edad_aparente_min || '';
@@ -535,6 +536,8 @@ function llenarFormulario(perfil) {
 
     // Link reel
     document.getElementById('linkReel').value = perfil.link_reel || '';
+
+    actualizarEstadoTabs();
 }
 
 // ==================== RECOPILAR BODY COMPLETO ====================
@@ -554,7 +557,7 @@ function buildSaveBody() {
         talla_camiseta:    document.getElementById('tallaCamiseta').value,
         talla_pantalon:    document.getElementById('tallaPantalon').value,
         talla_zapatos:     document.getElementById('tallaZapatos').value,
-        biografia:         document.getElementById('biografia').value,
+        biografia:         _biografiaActual,
         // Edad aparente
         edad_aparente_min: document.getElementById('edadAparenteMin').value || null,
         edad_aparente_max: document.getElementById('edadAparenteMax').value || null,
@@ -591,6 +594,25 @@ function buildSaveBody() {
 
 document.getElementById('formDatosPersonales').addEventListener('submit', async function(e) {
     e.preventDefault();
+
+    // Validar campos requeridos antes de guardar
+    const requeridos = [
+        { id: 'nombre', label: 'Nombre completo' },
+        { id: 'telefono', label: 'Teléfono' },
+        { id: 'fechaNacimiento', label: 'Fecha de nacimiento' },
+        { id: 'genero', label: 'Género' },
+        { id: 'altura', label: 'Altura' },
+        { id: 'peso', label: 'Peso' },
+        { id: 'colorOjos', label: 'Color de ojos' },
+        { id: 'colorCabello', label: 'Color de cabello' }
+    ];
+    const faltantes = requeridos.filter(f => !document.getElementById(f.id).value.trim());
+    if (faltantes.length > 0) {
+        mostrarNotificacion(`Completa los campos obligatorios: ${faltantes.map(f => f.label).join(', ')}`, 'error');
+        document.getElementById(faltantes[0].id).focus();
+        return;
+    }
+
     const token = getToken();
     const btn = this.querySelector('button[type="submit"]');
     btn.textContent = 'Guardando...';
@@ -609,6 +631,7 @@ document.getElementById('formDatosPersonales').addEventListener('submit', async 
             actorCache.nombre = nombreActualizado;
             actorCache.telefono = document.getElementById('telefono').value;
             localStorage.setItem('actor', JSON.stringify(actorCache));
+            actualizarEstadoTabs();
         } else {
             mostrarNotificacion('Error al actualizar el perfil', 'error');
         }
@@ -851,8 +874,40 @@ document.getElementById('logoutOverlay').addEventListener('click', function(e) {
 
 // ==================== TABS ====================
 
+function infoPersonalCompleta() {
+    const campos = ['nombre', 'telefono', 'fechaNacimiento', 'genero', 'altura', 'peso', 'colorOjos', 'colorCabello'];
+    return campos.every(id => {
+        const el = document.getElementById(id);
+        return el && el.value.trim() !== '';
+    });
+}
+
+function actualizarEstadoTabs() {
+    const completo = infoPersonalCompleta();
+    const banner = document.getElementById('bannerPerfilIncompleto');
+    banner.style.display = completo ? 'none' : 'block';
+
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+        if (btn.dataset.tab === 'info') return;
+        if (completo) {
+            btn.classList.remove('tab-locked');
+            btn.textContent = { fotos: 'Mis Fotos', experiencia: 'Experiencia', convocatorias: 'Convocatorias', seguridad: 'Seguridad' }[btn.dataset.tab] || btn.textContent.replace('🔒 ', '');
+        } else {
+            btn.classList.add('tab-locked');
+            if (!btn.textContent.startsWith('🔒')) {
+                btn.textContent = '🔒 ' + btn.textContent;
+            }
+        }
+    });
+}
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', function() {
+        if (this.classList.contains('tab-locked')) {
+            document.getElementById('bannerPerfilIncompleto').style.display = 'block';
+            document.getElementById('bannerPerfilIncompleto').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            return;
+        }
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         this.classList.add('active');

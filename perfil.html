@@ -39,12 +39,16 @@
             </div>
         </div>
 
+        <div id="bannerPerfilIncompleto" style="display:none;background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#856404;">
+            ⚠️ <strong>Completa tu información personal</strong> para acceder a las demás secciones. Rellena los campos marcados con * y haz clic en <strong>Guardar Cambios</strong>.
+        </div>
+
         <div class="tabs">
             <button class="tab-btn active" data-tab="info">Información Personal</button>
-            <button class="tab-btn" data-tab="fotos">Mis Fotos</button>
-            <button class="tab-btn" data-tab="experiencia">Experiencia</button>
-            <button class="tab-btn" data-tab="convocatorias">Convocatorias</button>
-            <button class="tab-btn" data-tab="seguridad">Seguridad</button>
+            <button class="tab-btn tab-locked" data-tab="fotos">🔒 Mis Fotos</button>
+            <button class="tab-btn tab-locked" data-tab="experiencia">🔒 Experiencia</button>
+            <button class="tab-btn tab-locked" data-tab="convocatorias">🔒 Convocatorias</button>
+            <button class="tab-btn tab-locked" data-tab="seguridad">🔒 Seguridad</button>
         </div>
 
         <!-- TAB: Información Personal -->
@@ -58,18 +62,18 @@
                             <input type="text" id="nombre" required>
                         </div>
                         <div class="form-group">
-                            <label for="telefono">Teléfono</label>
+                            <label for="telefono">Teléfono *</label>
                             <input type="tel" id="telefono">
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="fechaNacimiento">Fecha de nacimiento</label>
+                            <label for="fechaNacimiento">Fecha de nacimiento *</label>
                             <input type="date" id="fechaNacimiento">
                         </div>
                         <div class="form-group">
-                            <label for="genero">Género</label>
+                            <label for="genero">Género *</label>
                             <select id="genero">
                                 <option value="">Seleccionar</option>
                                 <option value="masculino">Masculino</option>
@@ -137,22 +141,22 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="altura">Altura (cm)</label>
+                            <label for="altura">Altura (cm) *</label>
                             <input type="number" id="altura" step="0.01" placeholder="170">
                         </div>
                         <div class="form-group">
-                            <label for="peso">Peso (kg)</label>
+                            <label for="peso">Peso (kg) *</label>
                             <input type="number" id="peso" step="0.01" placeholder="70">
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="colorOjos">Color de ojos</label>
+                            <label for="colorOjos">Color de ojos *</label>
                             <input type="text" id="colorOjos" placeholder="Ej: Café, Verde, Azul">
                         </div>
                         <div class="form-group">
-                            <label for="colorCabello">Color de cabello</label>
+                            <label for="colorCabello">Color de cabello *</label>
                             <input type="text" id="colorCabello" placeholder="Ej: Negro, Rubio, Castaño">
                         </div>
                     </div>
@@ -187,11 +191,6 @@
                             <label for="nombreManager">¿Quién es tu manager?</label>
                             <input type="text" id="nombreManager" placeholder="Nombre y/o agencia de representación">
                         </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="biografia">Biografía</label>
-                        <textarea id="biografia" rows="4" placeholder="Cuéntanos sobre ti..."></textarea>
                     </div>
 
                     <h3>Fechas no disponibles</h3>
@@ -435,13 +434,20 @@
 
                     <!-- Paso 1: Escanear QR -->
                     <div id="paso2FAQr" style="display:none;margin-top:20px">
-                        <p style="font-size:14px;color:#444;margin-bottom:10px">1. Escanea este código QR con tu app autenticadora:</p>
-                        <img id="qr2FA" src="" alt="QR 2FA" style="width:200px;height:200px;border:1px solid #eee;border-radius:8px;display:block;margin-bottom:12px">
-                        <p style="font-size:12px;color:#aaa;margin-bottom:16px">O ingresa la clave manual: <code id="secret2FA" style="background:#f5f5f5;padding:2px 6px;border-radius:4px;font-size:12px"></code></p>
-                        <p style="font-size:14px;color:#444;margin-bottom:8px">2. Ingresa el código generado por la app para confirmar:</p>
+                        <div style="background:#f8f8f8;border-radius:10px;padding:14px 16px;margin-bottom:16px;border-left:3px solid #910909">
+                            <p style="font-size:13px;color:#555;margin:0 0 6px;font-weight:600">📱 Paso 1 — Escanea el QR</p>
+                            <p style="font-size:13px;color:#666;margin:0">Abre <strong>Google Authenticator</strong> (u otra app TOTP) y escanea el código QR. La app generará un código de 6 dígitos que cambia cada 30 segundos.</p>
+                        </div>
+                        <img id="qr2FA" src="" alt="QR 2FA" style="width:200px;height:200px;border:1px solid #eee;border-radius:8px;display:block;margin-bottom:10px">
+                        <p style="font-size:12px;color:#aaa;margin-bottom:16px">¿No puedes escanear? Ingresa la clave manualmente: <code id="secret2FA" style="background:#f5f5f5;padding:2px 6px;border-radius:4px;font-size:12px;word-break:break-all"></code></p>
+                        <div style="background:#f8f8f8;border-radius:10px;padding:14px 16px;margin-bottom:14px;border-left:3px solid #910909">
+                            <p style="font-size:13px;color:#555;margin:0 0 6px;font-weight:600">🔢 Paso 2 — Confirma con el código de la app</p>
+                            <p style="font-size:13px;color:#666;margin:0">Escribe el código de <strong>6 dígitos que muestra Google Authenticator</strong> en este momento (no el QR, el número de la app).</p>
+                        </div>
                         <div style="display:flex;gap:10px;align-items:center">
-                            <input type="text" id="codigo2FAActivar" placeholder="000000" maxlength="6"
-                                style="width:140px;letter-spacing:6px;font-size:20px;text-align:center;font-weight:700;padding:10px;border:1.5px solid #ddd;border-radius:8px">
+                            <input type="text" id="codigo2FAActivar" placeholder="Código de la app" maxlength="6"
+                                inputmode="numeric" autocomplete="one-time-code"
+                                style="width:170px;letter-spacing:4px;font-size:20px;text-align:center;font-weight:700;padding:10px;border:1.5px solid #ddd;border-radius:8px">
                             <button id="btnActivar2FA" class="btn-primary">Confirmar y activar</button>
                         </div>
                         <p id="error2FAActivar" style="color:#c0392b;font-size:13px;display:none;margin-top:8px"></p>

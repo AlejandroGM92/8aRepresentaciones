@@ -20,7 +20,10 @@
                 <div class="notif-panel" id="notifPanel">
                     <div class="notif-panel-header">
                         <span>Notificaciones</span>
-                        <button id="btnMarcarLeidas" class="notif-leer-btn">Marcar como leídas</button>
+                        <div class="notif-header-btns">
+                            <button id="btnMarcarLeidas" class="notif-leer-btn">✓ Leídas</button>
+                            <button id="btnBorrarLeidas" class="notif-borrar-btn">🗑 Borrar leídas</button>
+                        </div>
                     </div>
                     <div id="notifLista" class="notif-lista"></div>
                 </div>
@@ -28,6 +31,7 @@
             <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menú">☰</button>
             <div class="nav-actions" id="navMenu">
                 <a href="convocatorias.html" class="nav-link nav-link-btn">📢 Convocatorias</a>
+                <a href="#" class="nav-link nav-link-btn" id="btnSeguridad">🔐 Seguridad</a>
                 <a href="#" class="nav-link nav-link-btn" id="btnCerrarSesion">Cerrar Sesión</a>
             </div>
         </div>
@@ -258,6 +262,58 @@
             <div class="modal-actions" style="padding:15px 25px 25px;">
                 <button class="btn-secondary" id="btnCancelarLogout">Cancelar</button>
                 <button class="btn-danger" id="btnConfirmarLogout">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Seguridad / 2FA -->
+    <div id="seguridadOverlay" class="modal-overlay" style="display:none;">
+        <div class="modal" style="max-width:480px;width:90%">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:20px 25px 0">
+                <h3 style="margin:0">🔐 Seguridad de la cuenta</h3>
+                <button id="btnCerrarSeguridad" style="background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;line-height:1">×</button>
+            </div>
+            <div style="padding:20px 25px 25px">
+                <h4 style="margin:0 0 6px;color:#333">Autenticación en dos pasos (2FA)</h4>
+                <p style="color:#666;font-size:14px;margin-bottom:18px">Protege tu cuenta de administrador con Google Authenticator o cualquier app TOTP.</p>
+
+                <!-- Estado: desactivado -->
+                <div id="adminSeccion2FADesactivado">
+                    <p style="color:#888;font-size:14px;margin-bottom:14px">🔓 El 2FA está <strong>desactivado</strong>.</p>
+                    <button id="adminBtn2FAConfigurar" class="btn-primary">Activar 2FA</button>
+
+                    <div id="adminPaso2FAQr" style="display:none;margin-top:20px">
+                        <div style="background:#f8f8f8;border-radius:8px;padding:12px 14px;margin-bottom:14px;border-left:3px solid #910909">
+                            <p style="font-size:13px;color:#555;margin:0 0 4px;font-weight:600">📱 Paso 1 — Escanea el QR</p>
+                            <p style="font-size:12px;color:#666;margin:0">Abre <strong>Google Authenticator</strong> y escanea este código. La app generará un número de 6 dígitos que cambia cada 30 segundos.</p>
+                        </div>
+                        <img id="adminQr2FA" src="" alt="QR 2FA" style="width:180px;height:180px;border:1px solid #eee;border-radius:8px;display:block;margin-bottom:10px">
+                        <p style="font-size:12px;color:#aaa;margin-bottom:14px">Clave manual: <code id="adminSecret2FA" style="background:#f5f5f5;padding:2px 6px;border-radius:4px;word-break:break-all"></code></p>
+                        <div style="background:#f8f8f8;border-radius:8px;padding:12px 14px;margin-bottom:12px;border-left:3px solid #910909">
+                            <p style="font-size:13px;color:#555;margin:0 0 4px;font-weight:600">🔢 Paso 2 — Ingresa el código de la app</p>
+                            <p style="font-size:12px;color:#666;margin:0">Escribe el <strong>código de 6 dígitos que muestra Google Authenticator</strong> (no el QR, el número de la app).</p>
+                        </div>
+                        <div style="display:flex;gap:10px;align-items:center">
+                            <input type="text" id="adminCodigo2FAActivar" placeholder="Código de la app" maxlength="6"
+                                inputmode="numeric" autocomplete="one-time-code"
+                                style="width:160px;letter-spacing:4px;font-size:20px;text-align:center;font-weight:700;padding:10px;border:1.5px solid #ddd;border-radius:8px">
+                            <button id="adminBtnActivar2FA" class="btn-primary">Confirmar</button>
+                        </div>
+                        <p id="adminError2FAActivar" style="color:#c0392b;font-size:13px;display:none;margin-top:8px"></p>
+                    </div>
+                </div>
+
+                <!-- Estado: activado -->
+                <div id="adminSeccion2FAActivado" style="display:none">
+                    <p style="color:#27ae60;font-size:14px;margin-bottom:14px">🔒 El 2FA está <strong>activado</strong>. Tu cuenta está protegida.</p>
+                    <p style="font-size:14px;color:#666;margin-bottom:10px">Para desactivarlo, ingresa el código de tu app:</p>
+                    <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px">
+                        <input type="text" id="adminCodigo2FADesactivar" placeholder="000000" maxlength="6"
+                            style="width:130px;letter-spacing:6px;font-size:20px;text-align:center;font-weight:700;padding:10px;border:1.5px solid #ddd;border-radius:8px">
+                        <button id="adminBtnDesactivar2FA" style="padding:10px 20px;background:#c0392b;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600">Desactivar</button>
+                    </div>
+                    <p id="adminError2FADesactivar" style="color:#c0392b;font-size:13px;display:none"></p>
+                </div>
             </div>
         </div>
     </div>

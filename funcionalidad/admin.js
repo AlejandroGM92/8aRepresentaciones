@@ -477,18 +477,21 @@ function actualizarNotifUI(notifs, noLeidas) {
 
     const lista = document.getElementById('notifLista');
     if (notifs.length === 0) {
-        lista.innerHTML = '<div class="notif-empty">Sin notificaciones recientes</div>';
+        lista.innerHTML = '<div class="notif-empty">Sin notificaciones</div>';
         return;
     }
-    lista.innerHTML = notifs.slice(0, 30).map(n => {
+    lista.innerHTML = notifs.slice(0, 50).map(n => {
         const fecha = new Date(n.fecha).toLocaleString('es-CO', {
             month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
         });
         return `
-        <div class="notif-item ${n.leido ? '' : 'no-leida'}">
-            <div class="notif-nombre">${n.actor_nombre || 'Actor'}</div>
-            <div class="notif-texto">Actualizó su perfil</div>
-            <div class="notif-fecha">${fecha}</div>
+        <div class="notif-item ${n.leido ? '' : 'no-leida'}" data-id="${n.id}">
+            <div class="notif-content">
+                <div class="notif-nombre">${n.actor_nombre || 'Actor'}</div>
+                <div class="notif-texto">${n.detalle || 'Actualizó su perfil'}</div>
+                <div class="notif-fecha">${fecha}</div>
+            </div>
+            <button class="notif-borrar-item" title="Borrar notificación" data-id="${n.id}">✕</button>
         </div>`;
     }).join('');
 }
@@ -505,7 +508,47 @@ document.getElementById('btnMarcarLeidas').addEventListener('click', async () =>
         headers: { 'Authorization': `Bearer ${token}` }
     });
     document.getElementById('notifBadge').classList.remove('visible');
+    document.getElementById('notifBadge').textContent = '';
     document.querySelectorAll('.notif-item.no-leida').forEach(el => el.classList.remove('no-leida'));
+});
+
+document.getElementById('btnBorrarLeidas').addEventListener('click', async () => {
+    const token = getToken();
+    const res = await fetch(`${API_URL}/admin/notificaciones/leidas/todas`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) await cargarNotificaciones();
+});
+
+// Borrar notificación individual con el botón X
+document.getElementById('notifLista').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.notif-borrar-item');
+    if (!btn) return;
+    e.stopPropagation();
+    const id = btn.dataset.id;
+    const token = getToken();
+    const res = await fetch(`${API_URL}/admin/notificaciones/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) {
+        const item = document.querySelector(`.notif-item[data-id="${id}"]`);
+        if (item) {
+            const eraNoLeida = item.classList.contains('no-leida');
+            item.remove();
+            if (eraNoLeida) {
+                const badge = document.getElementById('notifBadge');
+                const actual = parseInt(badge.textContent) || 0;
+                const nuevo = Math.max(0, actual - 1);
+                badge.textContent = nuevo > 9 ? '9+' : nuevo || '';
+                badge.classList.toggle('visible', nuevo > 0);
+            }
+            if (!document.querySelector('.notif-item')) {
+                document.getElementById('notifLista').innerHTML = '<div class="notif-empty">Sin notificaciones</div>';
+            }
+        }
+    }
 });
 
 document.addEventListener('click', (e) => {
@@ -554,6 +597,91 @@ document.getElementById('btnCancelarLogout').addEventListener('click', function(
 
 document.getElementById('logoutOverlay').addEventListener('click', function(e) {
     if (e.target === this) this.style.display = 'none';
+});
+
+// ==================== SEGURIDAD / 2FA ADMIN ====================
+
+async function cargar2FAStatusAdmin() {
+    const res = await fetch(`${API_URL}/auth/2fa/status`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    const data = await res.json();
+    document.getElementById('adminSeccion2FADesactivado').style.display = data.totp_enabled ? 'none' : 'block';
+    document.getElementById('adminSeccion2FAActivado').style.display = data.totp_enabled ? 'block' : 'none';
+    document.getElementById('adminPaso2FAQr').style.display = 'none';
+}
+
+document.getElementById('btnSeguridad').addEventListener('click', async (e) => {
+    e.preventDefault();
+    document.getElementById('seguridadOverlay').style.display = 'flex';
+    await cargar2FAStatusAdmin();
+});
+
+document.getElementById('btnCerrarSeguridad').addEventListener('click', () => {
+    document.getElementById('seguridadOverlay').style.display = 'none';
+});
+
+document.getElementById('seguridadOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+});
+
+document.getElementById('adminBtn2FAConfigurar').addEventListener('click', async () => {
+    const res = await fetch(`${API_URL}/auth/2fa/setup`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    const data = await res.json();
+    document.getElementById('adminQr2FA').src = data.qr;
+    document.getElementById('adminSecret2FA').textContent = data.secret;
+    document.getElementById('adminPaso2FAQr').style.display = 'block';
+    document.getElementById('adminCodigo2FAActivar').value = '';
+    document.getElementById('adminError2FAActivar').style.display = 'none';
+});
+
+document.getElementById('adminBtnActivar2FA').addEventListener('click', async () => {
+    const codigo = document.getElementById('adminCodigo2FAActivar').value.trim();
+    const errorEl = document.getElementById('adminError2FAActivar');
+    if (codigo.length !== 6) {
+        errorEl.textContent = 'El código debe tener 6 dígitos';
+        errorEl.style.display = 'block';
+        return;
+    }
+    const res = await fetch(`${API_URL}/auth/2fa/activate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ codigo })
+    });
+    const data = await res.json();
+    if (res.ok) {
+        mostrarNotificacion('2FA activado correctamente', 'success');
+        await cargar2FAStatusAdmin();
+    } else {
+        errorEl.textContent = data.error || 'Código incorrecto';
+        errorEl.style.display = 'block';
+    }
+});
+
+document.getElementById('adminBtnDesactivar2FA').addEventListener('click', async () => {
+    const codigo = document.getElementById('adminCodigo2FADesactivar').value.trim();
+    const errorEl = document.getElementById('adminError2FADesactivar');
+    if (codigo.length !== 6) {
+        errorEl.textContent = 'El código debe tener 6 dígitos';
+        errorEl.style.display = 'block';
+        return;
+    }
+    const res = await fetch(`${API_URL}/auth/2fa/disable`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ codigo })
+    });
+    const data = await res.json();
+    if (res.ok) {
+        mostrarNotificacion('2FA desactivado', 'success');
+        document.getElementById('adminCodigo2FADesactivar').value = '';
+        await cargar2FAStatusAdmin();
+    } else {
+        errorEl.textContent = data.error || 'Código incorrecto';
+        errorEl.style.display = 'block';
+    }
 });
 
 // ==================== INIT ====================

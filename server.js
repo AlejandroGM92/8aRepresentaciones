@@ -68,6 +68,7 @@ app.get('/admin.html', (_req, res) => res.sendFile(path.join(__dirname, 'admin.h
 app.get('/admin-actor-form.html', (_req, res) => res.sendFile(path.join(__dirname, 'admin-actor-form.html')));
 app.get('/casting.html', (_req, res) => res.sendFile(path.join(__dirname, 'casting.html')));
 app.get('/registro-casting.html', (_req, res) => res.sendFile(path.join(__dirname, 'registro-casting.html')));
+app.get('/auth-redirect.html', (_req, res) => res.sendFile(path.join(__dirname, 'auth-redirect.html')));
 app.get('/', (_req, res) => res.redirect('/login.html'));
 
 // Configuración de multer para subida de archivos
@@ -410,12 +411,56 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
              req.userId]
         );
 
-        // Registrar notificación para el admin
+        // Registrar notificación con detalle de campos cambiados
         try {
-            const [[actor]] = await promisePool.query('SELECT nombre FROM actores WHERE id = ?', [req.userId]);
+            const [[actorActual]] = await promisePool.query(
+                `SELECT nombre, telefono, fecha_nacimiento, genero, altura, peso,
+                 color_ojos, color_cabello, biografia, experiencia, habilidades,
+                 talla_camiseta, talla_pantalon, talla_zapatos, formacion_artistica,
+                 redes_sociales, idiomas, edad_aparente_min, edad_aparente_max,
+                 tiene_manager, nombre_manager, fechas_no_disponibles,
+                 anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
+                 ciudad_nacimiento, pais_nacimiento, acentos_maneja, acentos_no_maneja
+                 FROM actores WHERE id = ?`, [req.userId]
+            );
+            const etiquetas = {
+                nombre: 'Nombre', telefono: 'Teléfono', fecha_nacimiento: 'Fecha de nacimiento',
+                genero: 'Género', altura: 'Altura', peso: 'Peso',
+                color_ojos: 'Color de ojos', color_cabello: 'Color de cabello',
+                biografia: 'Biografía', experiencia: 'Experiencia', habilidades: 'Habilidades',
+                talla_camiseta: 'Talla camiseta', talla_pantalon: 'Talla pantalón',
+                talla_zapatos: 'Talla zapatos', formacion_artistica: 'Formación artística',
+                redes_sociales: 'Redes sociales', idiomas: 'Idiomas',
+                edad_aparente_min: 'Edad aparente mín', edad_aparente_max: 'Edad aparente máx',
+                tiene_manager: 'Manager', nombre_manager: 'Nombre manager',
+                fechas_no_disponibles: 'Fechas no disponibles',
+                anio_inicio_experiencia: 'Año inicio exp.', escenas_sexo: 'Escenas íntimas',
+                desnudos: 'Desnudos', link_reel: 'Link reel',
+                ciudad_nacimiento: 'Ciudad de nacimiento', pais_nacimiento: 'País de nacimiento',
+                acentos_maneja: 'Acentos', acentos_no_maneja: 'Acentos (no maneja)'
+            };
+            const nuevos = {
+                nombre, telefono, fecha_nacimiento, genero, altura, peso,
+                color_ojos, color_cabello, biografia, experiencia, habilidades,
+                talla_camiseta, talla_pantalon, talla_zapatos, formacion_artistica,
+                redes_sociales, idiomas, edad_aparente_min, edad_aparente_max,
+                tiene_manager, nombre_manager, fechas_no_disponibles,
+                anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
+                ciudad_nacimiento, pais_nacimiento, acentos_maneja, acentos_no_maneja
+            };
+            const cambiados = Object.keys(etiquetas).filter(campo => {
+                const viejo = String(actorActual[campo] ?? '').trim();
+                const nuevo = String(nuevos[campo] ?? '').trim();
+                return viejo !== nuevo;
+            }).map(c => etiquetas[c]);
+
+            const detalle = cambiados.length > 0
+                ? 'Actualizó: ' + cambiados.join(', ')
+                : 'Actualizó su perfil';
+
             await promisePool.query(
-                'INSERT INTO notificaciones_admin (actor_id, actor_nombre) VALUES (?, ?)',
-                [req.userId, actor ? actor.nombre : 'Actor']
+                'INSERT INTO notificaciones_admin (actor_id, actor_nombre, detalle) VALUES (?, ?, ?)',
+                [req.userId, actorActual ? actorActual.nombre : 'Actor', detalle]
             );
         } catch { /* no bloquear si la tabla aún no existe */ }
 
@@ -441,9 +486,17 @@ app.post('/api/perfil/foto', verificarToken, upload.single('foto'), async (req, 
             [fotoUrl, req.userId]
         );
 
-        res.json({ 
+        try {
+            const [[actor]] = await promisePool.query('SELECT nombre FROM actores WHERE id = ?', [req.userId]);
+            await promisePool.query(
+                'INSERT INTO notificaciones_admin (actor_id, actor_nombre, detalle) VALUES (?, ?, ?)',
+                [req.userId, actor ? actor.nombre : 'Actor', 'Actualizó: Foto de perfil']
+            );
+        } catch { /* silencioso */ }
+
+        res.json({
             mensaje: 'Foto de perfil actualizada',
-            url: fotoUrl 
+            url: fotoUrl
         });
 
     } catch (error) {
@@ -467,7 +520,15 @@ app.post('/api/perfil/fotos', verificarToken, upload.single('foto'), async (req,
             [req.userId, fotoUrl, descripcion]
         );
 
-        res.json({ 
+        try {
+            const [[actor]] = await promisePool.query('SELECT nombre FROM actores WHERE id = ?', [req.userId]);
+            await promisePool.query(
+                'INSERT INTO notificaciones_admin (actor_id, actor_nombre, detalle) VALUES (?, ?, ?)',
+                [req.userId, actor ? actor.nombre : 'Actor', 'Actualizó: Foto adicional agregada']
+            );
+        } catch { /* silencioso */ }
+
+        res.json({
             mensaje: 'Foto agregada exitosamente',
             foto: {
                 id: result.insertId,
@@ -588,12 +649,17 @@ async function manejarUsuarioOAuth(email, nombre, fotoUrl, idColumn, idValue) {
     );
     if (porEmail.length > 0) {
         const actor = porEmail[0];
-        await promisePool.query(`UPDATE actores SET ${idColumn} = ? WHERE id = ?`, [idValue, actor.id]);
+        // Si era cuenta local, marcar perfil_completo = 1 y vincular el ID OAuth
+        const eraLocal = !actor.auth_provider || actor.auth_provider === 'local';
+        await promisePool.query(
+            `UPDATE actores SET ${idColumn} = ?, perfil_completo = ? WHERE id = ?`,
+            [idValue, eraLocal ? 1 : actor.perfil_completo, actor.id]
+        );
         const token = jwt.sign(
             { id: actor.id, email: actor.email, is_admin: actor.is_admin === 1, is_casting: actor.is_casting === 1 },
             JWT_SECRET, { expiresIn: '7d' }
         );
-        return { token, actor, perfil_completo: actor.perfil_completo === 1 };
+        return { token, actor, perfil_completo: eraLocal ? true : actor.perfil_completo === 1 };
     }
 
     // Crear nuevo usuario
@@ -1340,6 +1406,26 @@ app.put('/api/admin/notificaciones/leer', verificarAdmin, async (req, res) => {
     }
 });
 
+// Borrar una notificación por id
+app.delete('/api/admin/notificaciones/:id', verificarAdmin, async (req, res) => {
+    try {
+        await promisePool.query('DELETE FROM notificaciones_admin WHERE id = ?', [req.params.id]);
+        res.json({ mensaje: 'Notificación eliminada' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al eliminar notificación' });
+    }
+});
+
+// Borrar todas las notificaciones leídas
+app.delete('/api/admin/notificaciones/leidas/todas', verificarAdmin, async (_req, res) => {
+    try {
+        await promisePool.query('DELETE FROM notificaciones_admin WHERE leido = 1');
+        res.json({ mensaje: 'Notificaciones leídas eliminadas' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error al eliminar notificaciones' });
+    }
+});
+
 // ==================== REGISTRO CASTING (link privado) ====================
 
 // Verificar token de invitación (sin autenticación, solo el token)
@@ -1734,8 +1820,7 @@ app.post('/api/auth/forgot-password', authLimiter, async (req, res) => {
         const [[actor]] = await promisePool.query(
             'SELECT id, nombre, email FROM actores WHERE email = ?', [email]
         );
-        // Siempre responder igual para no revelar si existe el correo
-        if (!actor) return res.json({ mensaje: 'Si el correo existe, recibirás un enlace para restablecer tu contraseña.' });
+        if (!actor) return res.status(404).json({ error: 'No encontramos ninguna cuenta con ese correo electrónico.' });
 
         const token = crypto.randomBytes(32).toString('hex');
         const expiry = new Date(Date.now() + 3600000); // 1 hora
@@ -1779,6 +1864,7 @@ app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
 });
 
 // Servir páginas de reset y convocatorias
+app.get('/forgot-password.html', (_req, res) => res.sendFile(path.join(__dirname, 'forgot-password.html')));
 app.get('/reset-password.html', (_req, res) => res.sendFile(path.join(__dirname, 'reset-password.html')));
 app.get('/convocatorias.html', (_req, res) => res.sendFile(path.join(__dirname, 'convocatorias.html')));
 

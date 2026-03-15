@@ -173,6 +173,16 @@ body {
     color: white;
 }
 
+.tab-btn.tab-locked {
+    color: #bbb;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.tab-btn.tab-locked:hover {
+    background: transparent;
+}
+
 /* Tab Content */
 .tab-content {
     display: none;
