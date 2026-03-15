@@ -1202,14 +1202,48 @@ app.put('/api/admin/actores/:id/password', verificarAdmin, async (req, res) => {
     }
 });
 
-// Eliminar un actor
+// Eliminar un actor (incluyendo fotos físicas del disco)
 app.delete('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         if (id === req.userId) return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta' });
-        const [result] = await promisePool.query('DELETE FROM actores WHERE id = ?', [id]);
-        if (result.affectedRows === 0) return res.status(404).json({ error: 'Actor no encontrado' });
-        res.json({ mensaje: 'Actor eliminado exitosamente' });
+
+        // 1. Obtener foto de perfil y fotos de galería antes de borrar
+        const [[actor]] = await promisePool.query('SELECT foto_perfil FROM actores WHERE id = ?', [id]);
+        if (!actor) return res.status(404).json({ error: 'Actor no encontrado' });
+
+        const [fotos] = await promisePool.query('SELECT url_foto FROM fotos_actor WHERE actor_id = ?', [id]);
+        const [contratos] = await promisePool.query('SELECT archivo_url FROM contratos_actor WHERE actor_id = ?', [id]);
+
+        // 2. Eliminar el actor de la BD (las demás tablas se limpian por FK o manualmente)
+        await promisePool.query('DELETE FROM actores WHERE id = ?', [id]);
+
+        // 3. Borrar archivos físicos del disco
+        const archivosAEliminar = [];
+
+        if (actor.foto_perfil) {
+            // La URL es relativa tipo /uploads/filename.jpg
+            const rutaFoto = path.join(__dirname, actor.foto_perfil.replace(/^\//, ''));
+            archivosAEliminar.push(rutaFoto);
+        }
+
+        fotos.forEach(f => {
+            if (f.url_foto) {
+                archivosAEliminar.push(path.join(__dirname, f.url_foto.replace(/^\//, '')));
+            }
+        });
+
+        contratos.forEach(c => {
+            if (c.archivo_url) {
+                archivosAEliminar.push(path.join(__dirname, c.archivo_url.replace(/^\//, '')));
+            }
+        });
+
+        archivosAEliminar.forEach(ruta => {
+            try { if (fs.existsSync(ruta)) fs.unlinkSync(ruta); } catch {}
+        });
+
+        res.json({ mensaje: 'Actor eliminado exitosamente', archivos_eliminados: archivosAEliminar.length });
     } catch (error) {
         console.error('Error admin delete:', error);
         res.status(500).json({ error: 'Error al eliminar actor' });
