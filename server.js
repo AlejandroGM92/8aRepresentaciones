@@ -12,6 +12,7 @@ const { OAuth2Client } = require('google-auth-library');
 const fs = require('fs');
 const crypto = require('crypto');
 const XLSX = require('xlsx');
+const sharp = require('sharp');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const mailer = require('./mailer');
@@ -82,20 +83,33 @@ const storage = multer.diskStorage({
     }
 });
 
-const upload = multer({ 
+const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+    limits: { fileSize: 3 * 1024 * 1024 }, // 3MB máximo
     fileFilter: function (req, file, cb) {
         const filetypes = /jpeg|jpg|png|gif/;
         const mimetype = filetypes.test(file.mimetype);
         const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-        
-        if (mimetype && extname) {
-            return cb(null, true);
-        }
+        if (mimetype && extname) return cb(null, true);
         cb(new Error('Solo se permiten imágenes (jpeg, jpg, png, gif)'));
     }
 });
+
+const MAX_FOTOS_ACTOR = 5;
+
+// Comprime y redimensiona una imagen en disco usando sharp
+async function comprimirImagen(filePath) {
+    try {
+        const tmpPath = filePath + '_tmp';
+        await sharp(filePath)
+            .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 80 })
+            .toFile(tmpPath);
+        fs.renameSync(tmpPath, filePath);
+    } catch (e) {
+        console.error('Error al comprimir imagen:', e.message);
+    }
+}
 
 
 const uploadContrato = multer({
@@ -475,16 +489,13 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
 // Subir foto de perfil
 app.post('/api/perfil/foto', verificarToken, upload.single('foto'), async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No se proporcionó ninguna foto' });
-        }
+        if (!req.file) return res.status(400).json({ error: 'No se proporcionó ninguna foto' });
 
+        const filePath = path.join(__dirname, 'uploads', req.file.filename);
+        await comprimirImagen(filePath);
         const fotoUrl = `/uploads/${req.file.filename}`;
 
-        await promisePool.query(
-            'UPDATE actores SET foto_perfil = ? WHERE id = ?',
-            [fotoUrl, req.userId]
-        );
+        await promisePool.query('UPDATE actores SET foto_perfil = ? WHERE id = ?', [fotoUrl, req.userId]);
 
         try {
             const [[actor]] = await promisePool.query('SELECT nombre FROM actores WHERE id = ?', [req.userId]);
@@ -494,11 +505,7 @@ app.post('/api/perfil/foto', verificarToken, upload.single('foto'), async (req, 
             );
         } catch { /* silencioso */ }
 
-        res.json({
-            mensaje: 'Foto de perfil actualizada',
-            url: fotoUrl
-        });
-
+        res.json({ mensaje: 'Foto de perfil actualizada', url: fotoUrl });
     } catch (error) {
         console.error('Error al subir foto:', error);
         res.status(500).json({ error: 'Error al subir la foto' });
@@ -508,10 +515,19 @@ app.post('/api/perfil/foto', verificarToken, upload.single('foto'), async (req, 
 // Agregar foto adicional
 app.post('/api/perfil/fotos', verificarToken, upload.single('foto'), async (req, res) => {
     try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No se proporcionó ninguna foto' });
+        if (!req.file) return res.status(400).json({ error: 'No se proporcionó ninguna foto' });
+
+        // Verificar límite de fotos
+        const [[{ total }]] = await promisePool.query(
+            'SELECT COUNT(*) AS total FROM fotos_actor WHERE actor_id = ?', [req.userId]
+        );
+        if (total >= MAX_FOTOS_ACTOR) {
+            fs.unlink(req.file.path, () => {});
+            return res.status(400).json({ error: `Límite alcanzado: máximo ${MAX_FOTOS_ACTOR} fotos adicionales por actor.` });
         }
 
+        const filePath = path.join(__dirname, 'uploads', req.file.filename);
+        await comprimirImagen(filePath);
         const fotoUrl = `/uploads/${req.file.filename}`;
         const descripcion = req.body.descripcion || '';
 
@@ -528,15 +544,7 @@ app.post('/api/perfil/fotos', verificarToken, upload.single('foto'), async (req,
             );
         } catch { /* silencioso */ }
 
-        res.json({
-            mensaje: 'Foto agregada exitosamente',
-            foto: {
-                id: result.insertId,
-                url: fotoUrl,
-                descripcion: descripcion
-            }
-        });
-
+        res.json({ mensaje: 'Foto agregada exitosamente', foto: { id: result.insertId, url: fotoUrl, descripcion } });
     } catch (error) {
         console.error('Error al agregar foto:', error);
         res.status(500).json({ error: 'Error al agregar la foto' });
@@ -1056,6 +1064,8 @@ app.post('/api/admin/actores', verificarAdmin, async (req, res) => {
 app.post('/api/admin/actores/:id/foto', verificarAdmin, upload.single('foto'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No se proporcionó ninguna foto' });
+        const filePath = path.join(__dirname, 'uploads', req.file.filename);
+        await comprimirImagen(filePath);
         const fotoUrl = `/uploads/${req.file.filename}`;
         await promisePool.query('UPDATE actores SET foto_perfil = ? WHERE id = ?', [fotoUrl, req.params.id]);
         res.json({ mensaje: 'Foto de perfil actualizada', url: fotoUrl });
@@ -1069,6 +1079,17 @@ app.post('/api/admin/actores/:id/foto', verificarAdmin, upload.single('foto'), a
 app.post('/api/admin/actores/:id/fotos', verificarAdmin, upload.single('foto'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ error: 'No se proporcionó ninguna foto' });
+
+        const [[{ total }]] = await promisePool.query(
+            'SELECT COUNT(*) AS total FROM fotos_actor WHERE actor_id = ?', [req.params.id]
+        );
+        if (total >= MAX_FOTOS_ACTOR) {
+            fs.unlink(req.file.path, () => {});
+            return res.status(400).json({ error: `Límite alcanzado: máximo ${MAX_FOTOS_ACTOR} fotos por actor.` });
+        }
+
+        const filePath = path.join(__dirname, 'uploads', req.file.filename);
+        await comprimirImagen(filePath);
         const fotoUrl = `/uploads/${req.file.filename}`;
         const descripcion = req.body.descripcion || '';
         const [result] = await promisePool.query(
@@ -1079,6 +1100,50 @@ app.post('/api/admin/actores/:id/fotos', verificarAdmin, upload.single('foto'), 
     } catch (error) {
         console.error('Error galería admin:', error);
         res.status(500).json({ error: 'Error al agregar la foto' });
+    }
+});
+
+// Descargar foto de un actor (admin)
+app.get('/api/admin/actores/:id/fotos/:fotoId/download', verificarAdmin, async (req, res) => {
+    try {
+        const [[foto]] = await promisePool.query(
+            'SELECT url_foto FROM fotos_actor WHERE id = ? AND actor_id = ?',
+            [req.params.fotoId, req.params.id]
+        );
+        if (!foto) return res.status(404).json({ error: 'Foto no encontrada' });
+
+        const filePath = path.join(__dirname, foto.url_foto);
+        if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Archivo no encontrado' });
+
+        const filename = path.basename(filePath);
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'image/jpeg');
+        fs.createReadStream(filePath).pipe(res);
+    } catch (error) {
+        console.error('Error descarga foto admin:', error);
+        res.status(500).json({ error: 'Error al descargar la foto' });
+    }
+});
+
+// Descargar foto de perfil de un actor (admin)
+app.get('/api/admin/actores/:id/foto-perfil/download', verificarAdmin, async (req, res) => {
+    try {
+        const [[actor]] = await promisePool.query(
+            'SELECT nombre, foto_perfil FROM actores WHERE id = ?', [req.params.id]
+        );
+        if (!actor || !actor.foto_perfil) return res.status(404).json({ error: 'Foto no encontrada' });
+
+        const filePath = path.join(__dirname, actor.foto_perfil);
+        if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'Archivo no encontrado' });
+
+        const ext = path.extname(filePath) || '.jpg';
+        const safeName = actor.nombre.replace(/[^a-z0-9]/gi, '_');
+        res.setHeader('Content-Disposition', `attachment; filename="${safeName}_perfil${ext}"`);
+        res.setHeader('Content-Type', 'image/jpeg');
+        fs.createReadStream(filePath).pipe(res);
+    } catch (error) {
+        console.error('Error descarga foto perfil admin:', error);
+        res.status(500).json({ error: 'Error al descargar la foto' });
     }
 });
 

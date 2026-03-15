@@ -234,11 +234,11 @@ window.verActor = async function(id) {
         });
         const data = await res.json();
         if (!res.ok) { mostrarNotificacion(data.error || 'Error', 'error'); return; }
-        mostrarModalVista(data.actor);
+        mostrarModalVista(data.actor, data.fotos || []);
     } catch { mostrarNotificacion('Error de conexión', 'error'); }
 };
 
-function mostrarModalVista(a) {
+function mostrarModalVista(a, fotos) {
     const edad = a.edad != null ? `${a.edad} años · ` : '';
     const idiomas = parseJSON(a.idiomas, []);
     const exps = parseJSON(a.experiencia, []);
@@ -339,6 +339,31 @@ function mostrarModalVista(a) {
                 <h4>Biografía</h4>
                 <p style="font-size:14px;color:#444;line-height:1.6">${esc(a.biografia)}</p>
             </div>` : ''}
+
+            <div class="vista-section">
+                <h4>Fotos <span style="font-size:12px;color:#999;font-weight:400">(${(fotos||[]).length}/5)</span></h4>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px">
+                    ${a.foto_perfil ? `
+                    <div style="position:relative;text-align:center">
+                        <img src="${fotoSrc(a.foto_perfil)}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #eee" onerror="this.src='${fotoSrc(null)}'">
+                        <div style="margin-top:4px">
+                            <span style="font-size:10px;color:#aaa;display:block">Foto perfil</span>
+                            <a href="/api/admin/actores/${a.id}/foto-perfil/download" download
+                               style="font-size:11px;color:#910909;text-decoration:none;font-weight:600">⬇ Descargar</a>
+                        </div>
+                    </div>` : ''}
+                    ${(fotos||[]).map((f, i) => `
+                    <div style="position:relative;text-align:center">
+                        <img src="${fotoSrc(f.url_foto)}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #eee" onerror="this.src='${fotoSrc(null)}'">
+                        <div style="margin-top:4px">
+                            <span style="font-size:10px;color:#aaa;display:block">Foto ${i + 1}</span>
+                            <a href="/api/admin/actores/${a.id}/fotos/${f.id}/download" download
+                               style="font-size:11px;color:#910909;text-decoration:none;font-weight:600">⬇ Descargar</a>
+                        </div>
+                    </div>`).join('')}
+                    ${!a.foto_perfil && !(fotos||[]).length ? `<span style="color:#aaa;font-size:13px">Sin fotos subidas.</span>` : ''}
+                </div>
+            </div>
         </div>
             <div class="vista-section" id="seccionContratos_${a.id}">
                 <h4>Contratos Firmados</h4>

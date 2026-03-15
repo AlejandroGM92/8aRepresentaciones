@@ -704,28 +704,44 @@ document.getElementById('uploadFotoGaleria').addEventListener('change', async fu
             headers: { 'Authorization': `Bearer ${token}` },
             body: formData
         });
+        const data = await response.json();
         if (response.ok) {
             mostrarNotificacion('Foto agregada a la galería', 'success');
             cargarPerfil();
         } else {
-            mostrarNotificacion('Error al subir la foto', 'error');
+            mostrarNotificacion(data.error || 'Error al subir la foto', 'error');
         }
     } catch { mostrarNotificacion('Error de conexión', 'error'); }
 });
 
 function cargarFotos(fotos) {
+    const MAX = 5;
     const galeria = document.getElementById('galeriaFotos');
+    const btnLabel = document.querySelector('label[for="uploadFotoGaleria"]');
+
+    // Mostrar u ocultar botón de agregar foto según límite
+    if (btnLabel) {
+        if ((fotos || []).length >= MAX) {
+            btnLabel.style.display = 'none';
+        } else {
+            btnLabel.style.display = '';
+        }
+    }
+
     if (!fotos || fotos.length === 0) {
         galeria.innerHTML = '<div class="empty-state"><p>No tienes fotos adicionales aún. ¡Agrega tu primera foto!</p></div>';
         return;
     }
-    galeria.innerHTML = fotos.map(foto => `
+
+    galeria.innerHTML = `
+        <p style="font-size:12px;color:#999;margin-bottom:10px">${fotos.length}/${MAX} fotos adicionales</p>
+        ${fotos.map(foto => `
         <div class="photo-item">
             <img src="${foto.url_foto}" alt="${foto.descripcion || 'Foto'}">
             <div class="photo-item-overlay">
                 <button class="btn-delete-photo" onclick="eliminarFoto(${foto.id})">🗑️ Eliminar</button>
             </div>
-        </div>`).join('');
+        </div>`).join('')}`;
 }
 
 async function eliminarFoto(fotoId) {
