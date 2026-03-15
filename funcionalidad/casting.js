@@ -389,6 +389,113 @@ document.getElementById('logoutOverlay').addEventListener('click', function(e) {
     if (e.target === this) this.style.display = 'none';
 });
 
+// ==================== SEGURIDAD / 2FA CASTING ====================
+
+async function cargar2FAStatusCasting() {
+    const res = await fetch(`${API_URL}/auth/2fa/status`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    const data = await res.json();
+    document.getElementById('castingSeccion2FADesactivado').style.display = data.totp_enabled ? 'none' : 'block';
+    document.getElementById('castingSeccion2FAActivado').style.display = data.totp_enabled ? 'block' : 'none';
+    document.getElementById('castingPaso2FAQr').style.display = 'none';
+}
+
+document.getElementById('btnSeguridad').addEventListener('click', async (e) => {
+    e.preventDefault();
+    document.getElementById('seguridadOverlay').style.display = 'flex';
+    await cargar2FAStatusCasting();
+});
+
+document.getElementById('btnCerrarSeguridad').addEventListener('click', () => {
+    document.getElementById('seguridadOverlay').style.display = 'none';
+});
+
+document.getElementById('seguridadOverlay').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+});
+
+document.getElementById('castingBtn2FAConfigurar').addEventListener('click', async () => {
+    const res = await fetch(`${API_URL}/auth/2fa/setup`, {
+        headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    const data = await res.json();
+
+    document.getElementById('castingQr2FA').src = data.qr;
+    document.getElementById('castingSecret2FA').textContent = data.secret;
+    document.getElementById('castingCodigo2FAActivar').value = '';
+    document.getElementById('castingError2FAActivar').style.display = 'none';
+
+    const esMobil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (esMobil) {
+        document.getElementById('castingQr2FA').style.display = 'none';
+        document.getElementById('castingBotonesMobile').style.display = 'flex';
+        document.getElementById('castingBtnGoogleAuth').href = data.otpauth_url;
+        document.getElementById('castingBtnMicrosoftAuth').href = data.otpauth_url;
+        document.getElementById('castingInstruccion2FATexto').innerHTML =
+            'Toca el botón de tu app autenticadora para agregar la cuenta directamente. Luego vuelve aquí e ingresa el código que genera la app.';
+    } else {
+        document.getElementById('castingQr2FA').style.display = 'block';
+        document.getElementById('castingBotonesMobile').style.display = 'none';
+    }
+
+    document.getElementById('castingBtnCopiarSecret').addEventListener('click', function() {
+        navigator.clipboard.writeText(data.secret).then(() => {
+            this.textContent = '¡Copiado!';
+            setTimeout(() => { this.textContent = 'Copiar'; }, 2000);
+        });
+    });
+
+    document.getElementById('castingPaso2FAQr').style.display = 'block';
+});
+
+document.getElementById('castingBtnActivar2FA').addEventListener('click', async () => {
+    const codigo = document.getElementById('castingCodigo2FAActivar').value.trim();
+    const errorEl = document.getElementById('castingError2FAActivar');
+    if (codigo.length !== 6) {
+        errorEl.textContent = 'El código debe tener 6 dígitos';
+        errorEl.style.display = 'block';
+        return;
+    }
+    const res = await fetch(`${API_URL}/auth/2fa/activate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ codigo })
+    });
+    const data = await res.json();
+    if (res.ok) {
+        mostrarNotificacion('2FA activado correctamente', 'success');
+        await cargar2FAStatusCasting();
+    } else {
+        errorEl.textContent = data.error || 'Código incorrecto';
+        errorEl.style.display = 'block';
+    }
+});
+
+document.getElementById('castingBtnDesactivar2FA').addEventListener('click', async () => {
+    const codigo = document.getElementById('castingCodigo2FADesactivar').value.trim();
+    const errorEl = document.getElementById('castingError2FADesactivar');
+    if (codigo.length !== 6) {
+        errorEl.textContent = 'El código debe tener 6 dígitos';
+        errorEl.style.display = 'block';
+        return;
+    }
+    const res = await fetch(`${API_URL}/auth/2fa/disable`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+        body: JSON.stringify({ codigo })
+    });
+    const data = await res.json();
+    if (res.ok) {
+        mostrarNotificacion('2FA desactivado', 'success');
+        document.getElementById('castingCodigo2FADesactivar').value = '';
+        await cargar2FAStatusCasting();
+    } else {
+        errorEl.textContent = data.error || 'Código incorrecto';
+        errorEl.style.display = 'block';
+    }
+});
+
 // ==================== INIT ====================
 
 window.addEventListener('DOMContentLoaded', async () => {
