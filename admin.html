@@ -284,14 +284,33 @@
 
                     <div id="adminPaso2FAQr" style="display:none;margin-top:20px">
                         <div style="background:#f8f8f8;border-radius:8px;padding:12px 14px;margin-bottom:14px;border-left:3px solid #910909">
-                            <p style="font-size:13px;color:#555;margin:0 0 4px;font-weight:600">📱 Paso 1 — Escanea el QR</p>
-                            <p style="font-size:12px;color:#666;margin:0">Abre <strong>Google Authenticator</strong> y escanea este código. La app generará un número de 6 dígitos que cambia cada 30 segundos.</p>
+                            <p style="font-size:13px;color:#555;margin:0 0 4px;font-weight:600">📱 Paso 1 — Agrega la cuenta</p>
+                            <p id="adminInstruccion2FATexto" style="font-size:12px;color:#666;margin:0">Abre <strong>Google Authenticator</strong> o <strong>Microsoft Authenticator</strong> y escanea el código QR. La app generará un número de 6 dígitos que cambia cada 30 segundos.</p>
                         </div>
-                        <img id="adminQr2FA" src="" alt="QR 2FA" style="width:180px;height:180px;border:1px solid #eee;border-radius:8px;display:block;margin-bottom:10px">
-                        <p style="font-size:12px;color:#aaa;margin-bottom:14px">Clave manual: <code id="adminSecret2FA" style="background:#f5f5f5;padding:2px 6px;border-radius:4px;word-break:break-all"></code></p>
+
+                        <!-- QR (escritorio) -->
+                        <img id="adminQr2FA" src="" alt="QR 2FA" style="width:180px;height:180px;border:1px solid #eee;border-radius:8px;display:block;margin-bottom:12px">
+
+                        <!-- Botones móvil -->
+                        <div id="adminBotonesMobile" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px">
+                            <a id="adminBtnGoogleAuth" href="#" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#910909;color:#fff;padding:11px 16px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">
+                                📱 Agregar a Google Authenticator
+                            </a>
+                            <a id="adminBtnMicrosoftAuth" href="#" style="display:flex;align-items:center;justify-content:center;gap:8px;background:#0078d4;color:#fff;padding:11px 16px;border-radius:8px;font-weight:700;font-size:13px;text-decoration:none">
+                                🔷 Agregar a Microsoft Authenticator
+                            </a>
+                        </div>
+
+                        <!-- Clave manual + copiar -->
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+                            <span style="font-size:12px;color:#888">Clave manual:</span>
+                            <code id="adminSecret2FA" style="background:#f5f5f5;padding:2px 6px;border-radius:4px;font-size:12px;word-break:break-all"></code>
+                            <button id="adminBtnCopiarSecret" style="font-size:12px;padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;white-space:nowrap">Copiar</button>
+                        </div>
+
                         <div style="background:#f8f8f8;border-radius:8px;padding:12px 14px;margin-bottom:12px;border-left:3px solid #910909">
                             <p style="font-size:13px;color:#555;margin:0 0 4px;font-weight:600">🔢 Paso 2 — Ingresa el código de la app</p>
-                            <p style="font-size:12px;color:#666;margin:0">Escribe el <strong>código de 6 dígitos que muestra Google Authenticator</strong> (no el QR, el número de la app).</p>
+                            <p style="font-size:12px;color:#666;margin:0">Escribe el <strong>código de 6 dígitos</strong> que muestra tu app autenticadora (no el QR, el número que aparece en la app).</p>
                         </div>
                         <div style="display:flex;gap:10px;align-items:center">
                             <input type="text" id="adminCodigo2FAActivar" placeholder="Código de la app" maxlength="6"

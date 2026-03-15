@@ -630,11 +630,34 @@ document.getElementById('adminBtn2FAConfigurar').addEventListener('click', async
         headers: { 'Authorization': `Bearer ${getToken()}` }
     });
     const data = await res.json();
+
     document.getElementById('adminQr2FA').src = data.qr;
     document.getElementById('adminSecret2FA').textContent = data.secret;
-    document.getElementById('adminPaso2FAQr').style.display = 'block';
     document.getElementById('adminCodigo2FAActivar').value = '';
     document.getElementById('adminError2FAActivar').style.display = 'none';
+
+    const esMobil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (esMobil) {
+        document.getElementById('adminQr2FA').style.display = 'none';
+        document.getElementById('adminBotonesMobile').style.display = 'flex';
+        document.getElementById('adminBtnGoogleAuth').href = data.otpauth_url;
+        document.getElementById('adminBtnMicrosoftAuth').href = data.otpauth_url;
+        document.getElementById('adminInstruccion2FATexto').innerHTML =
+            'Toca el botón de tu app autenticadora para agregar la cuenta directamente. Luego vuelve aquí e ingresa el código que genera la app.';
+    } else {
+        document.getElementById('adminQr2FA').style.display = 'block';
+        document.getElementById('adminBotonesMobile').style.display = 'none';
+    }
+
+    // Botón copiar clave
+    document.getElementById('adminBtnCopiarSecret').addEventListener('click', function() {
+        navigator.clipboard.writeText(data.secret).then(() => {
+            this.textContent = '¡Copiado!';
+            setTimeout(() => { this.textContent = 'Copiar'; }, 2000);
+        });
+    });
+
+    document.getElementById('adminPaso2FAQr').style.display = 'block';
 });
 
 document.getElementById('adminBtnActivar2FA').addEventListener('click', async () => {

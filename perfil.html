@@ -434,12 +434,33 @@
 
                     <!-- Paso 1: Escanear QR -->
                     <div id="paso2FAQr" style="display:none;margin-top:20px">
-                        <div style="background:#f8f8f8;border-radius:10px;padding:14px 16px;margin-bottom:16px;border-left:3px solid #910909">
-                            <p style="font-size:13px;color:#555;margin:0 0 6px;font-weight:600">📱 Paso 1 — Escanea el QR</p>
-                            <p style="font-size:13px;color:#666;margin:0">Abre <strong>Google Authenticator</strong> (u otra app TOTP) y escanea el código QR. La app generará un código de 6 dígitos que cambia cada 30 segundos.</p>
+                        <!-- Instrucción adaptada según dispositivo -->
+                        <div id="instruccion2FA" style="background:#f8f8f8;border-radius:10px;padding:14px 16px;margin-bottom:16px;border-left:3px solid #910909">
+                            <p style="font-size:13px;color:#555;margin:0 0 6px;font-weight:600">📱 Paso 1 — Agrega la cuenta</p>
+                            <p id="instruccion2FATexto" style="font-size:13px;color:#666;margin:0">Abre <strong>Google Authenticator</strong> y escanea el código QR. La app generará un código de 6 dígitos que cambia cada 30 segundos.</p>
                         </div>
-                        <img id="qr2FA" src="" alt="QR 2FA" style="width:200px;height:200px;border:1px solid #eee;border-radius:8px;display:block;margin-bottom:10px">
-                        <p style="font-size:12px;color:#aaa;margin-bottom:16px">¿No puedes escanear? Ingresa la clave manualmente: <code id="secret2FA" style="background:#f5f5f5;padding:2px 6px;border-radius:4px;font-size:12px;word-break:break-all"></code></p>
+
+                        <!-- QR (solo escritorio) -->
+                        <img id="qr2FA" src="" alt="QR 2FA" style="width:200px;height:200px;border:1px solid #eee;border-radius:8px;display:block;margin-bottom:12px">
+
+                        <!-- Botones móvil -->
+                        <div id="botonesMobile2FA" style="display:none;flex-direction:column;gap:8px;margin-bottom:12px">
+                            <a id="btnGoogleAuth2FA" href="#"
+                               style="display:flex;align-items:center;justify-content:center;gap:8px;background:#910909;color:#fff;padding:12px 18px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none">
+                                📱 Agregar a Google Authenticator
+                            </a>
+                            <a id="btnMicrosoftAuth2FA" href="#"
+                               style="display:flex;align-items:center;justify-content:center;gap:8px;background:#0078d4;color:#fff;padding:12px 18px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none">
+                                🔷 Agregar a Microsoft Authenticator
+                            </a>
+                        </div>
+
+                        <!-- Clave manual + botón copiar -->
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+                            <span style="font-size:12px;color:#888">Clave manual:</span>
+                            <code id="secret2FA" style="background:#f5f5f5;padding:3px 8px;border-radius:5px;font-size:12px;word-break:break-all"></code>
+                            <button id="btnCopiarSecret" style="font-size:12px;padding:4px 10px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;white-space:nowrap">Copiar</button>
+                        </div>
                         <div style="background:#f8f8f8;border-radius:10px;padding:14px 16px;margin-bottom:14px;border-left:3px solid #910909">
                             <p style="font-size:13px;color:#555;margin:0 0 6px;font-weight:600">🔢 Paso 2 — Confirma con el código de la app</p>
                             <p style="font-size:13px;color:#666;margin:0">Escribe el código de <strong>6 dígitos que muestra Google Authenticator</strong> en este momento (no el QR, el número de la app).</p>

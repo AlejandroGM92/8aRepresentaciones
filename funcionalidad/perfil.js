@@ -1216,10 +1216,33 @@ document.getElementById('btn2FAConfigurar').addEventListener('click', async func
         });
         const data = await res.json();
         if (res.ok) {
+            const esMobil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
             document.getElementById('qr2FA').src = data.qr;
             document.getElementById('secret2FA').textContent = data.secret;
+
+            if (esMobil) {
+                document.getElementById('qr2FA').style.display = 'none';
+                document.getElementById('botonesMobile2FA').style.display = 'flex';
+                document.getElementById('btnGoogleAuth2FA').href = data.otpauth_url;
+                document.getElementById('btnMicrosoftAuth2FA').href = data.otpauth_url;
+                document.getElementById('instruccion2FATexto').innerHTML =
+                    'Toca el botón de tu app autenticadora para agregar la cuenta directamente. Luego vuelve aquí e ingresa el código que genera la app.';
+            } else {
+                document.getElementById('qr2FA').style.display = 'block';
+                document.getElementById('botonesMobile2FA').style.display = 'none';
+            }
+
             document.getElementById('paso2FAQr').style.display = 'block';
             this.style.display = 'none';
+
+            // Botón copiar clave
+            document.getElementById('btnCopiarSecret').addEventListener('click', function() {
+                navigator.clipboard.writeText(data.secret).then(() => {
+                    this.textContent = '¡Copiado!';
+                    setTimeout(() => { this.textContent = 'Copiar'; }, 2000);
+                });
+            });
         } else {
             mostrarNotificacion(data.error || 'Error al generar QR', 'error');
             this.textContent = 'Activar 2FA';

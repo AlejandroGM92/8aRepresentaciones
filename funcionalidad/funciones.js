@@ -141,6 +141,18 @@ function ocultarPaso2FA() {
 
 document.getElementById('btn2FAVolver').addEventListener('click', ocultarPaso2FA);
 
+// Si viene de OAuth con 2FA requerido, mostrar directamente el formulario de código
+(function() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('require_2fa') === '1') {
+        const tempToken = sessionStorage.getItem('oauth_temp_token');
+        if (tempToken) {
+            sessionStorage.removeItem('oauth_temp_token');
+            mostrarPaso2FA(tempToken);
+        }
+    }
+})();
+
 document.getElementById('btn2FAVerificar').addEventListener('click', async function() {
     const codigo = document.getElementById('totp_codigo').value.trim();
     const errorEl = document.getElementById('totp_error');

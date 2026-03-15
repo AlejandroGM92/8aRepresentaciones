@@ -18,6 +18,12 @@
 <script>
 (async () => {
     function redirigir(data) {
+        // Si el usuario tiene 2FA activo, redirigir al login con el temp_token
+        if (data.require_2fa) {
+            sessionStorage.setItem('oauth_temp_token', data.temp_token);
+            window.location.href = '/login.html?require_2fa=1';
+            return;
+        }
         localStorage.setItem('token', data.token);
         localStorage.setItem('actor', JSON.stringify(data.actor));
         if (data.actor.is_admin) {

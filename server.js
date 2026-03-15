@@ -630,17 +630,26 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Función auxiliar para crear/encontrar usuario OAuth y retornar JWT
 async function manejarUsuarioOAuth(email, nombre, fotoUrl, idColumn, idValue) {
+    // Helper: si el actor tiene 2FA activo, devolver temp_token en vez del JWT final
+    function respuestaConOSin2FA(actor, perfil_completo) {
+        if (actor.totp_enabled) {
+            const tempToken = jwt.sign({ id: actor.id, scope: '2fa' }, JWT_SECRET, { expiresIn: '5m' });
+            return { require_2fa: true, temp_token: tempToken };
+        }
+        const token = jwt.sign(
+            { id: actor.id, email: actor.email, is_admin: actor.is_admin === 1, is_casting: actor.is_casting === 1 },
+            JWT_SECRET, { expiresIn: '7d' }
+        );
+        return { token, actor, perfil_completo };
+    }
+
     // Buscar por proveedor ID
     const [porId] = await promisePool.query(
         `SELECT * FROM actores WHERE ${idColumn} = ?`, [idValue]
     );
     if (porId.length > 0) {
         const actor = porId[0];
-        const token = jwt.sign(
-            { id: actor.id, email: actor.email, is_admin: actor.is_admin === 1, is_casting: actor.is_casting === 1 },
-            JWT_SECRET, { expiresIn: '7d' }
-        );
-        return { token, actor, perfil_completo: actor.perfil_completo === 1 };
+        return respuestaConOSin2FA(actor, actor.perfil_completo === 1);
     }
 
     // Buscar por email (puede existir como cuenta local)
@@ -655,11 +664,7 @@ async function manejarUsuarioOAuth(email, nombre, fotoUrl, idColumn, idValue) {
             `UPDATE actores SET ${idColumn} = ?, perfil_completo = ? WHERE id = ?`,
             [idValue, eraLocal ? 1 : actor.perfil_completo, actor.id]
         );
-        const token = jwt.sign(
-            { id: actor.id, email: actor.email, is_admin: actor.is_admin === 1, is_casting: actor.is_casting === 1 },
-            JWT_SECRET, { expiresIn: '7d' }
-        );
-        return { token, actor, perfil_completo: eraLocal ? true : actor.perfil_completo === 1 };
+        return respuestaConOSin2FA(actor, eraLocal ? true : actor.perfil_completo === 1);
     }
 
     // Crear nuevo usuario
@@ -747,7 +752,7 @@ app.get('/api/auth/2fa/setup', verificarToken, async (req, res) => {
         await promisePool.query('UPDATE actores SET totp_secret=? WHERE id=?', [secret.base32, req.userId]);
 
         const qrUrl = await QRCode.toDataURL(secret.otpauth_url);
-        res.json({ qr: qrUrl, secret: secret.base32 });
+        res.json({ qr: qrUrl, secret: secret.base32, otpauth_url: secret.otpauth_url });
     } catch (error) {
         console.error('Error 2FA setup:', error);
         res.status(500).json({ error: 'Error al generar 2FA' });
