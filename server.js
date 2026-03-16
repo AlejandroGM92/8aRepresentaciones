@@ -2004,6 +2004,7 @@ app.post('/api/auth/reset-password', authLimiter, async (req, res) => {
 app.get('/forgot-password.html', (_req, res) => res.sendFile(path.join(__dirname, 'forgot-password.html')));
 app.get('/reset-password.html', (_req, res) => res.sendFile(path.join(__dirname, 'reset-password.html')));
 app.get('/convocatorias.html', (_req, res) => res.sendFile(path.join(__dirname, 'convocatorias.html')));
+app.get('/terminos-y-condiciones.html', (_req, res) => res.sendFile(path.join(__dirname, 'terminos-y-condiciones.html')));
 
 // ==================== TEST DE CORREO (solo admin) ====================
 app.post('/api/admin/test-email', verificarToken, verificarAdmin, async (req, res) => {
