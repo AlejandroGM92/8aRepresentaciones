@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Términos, Condiciones y Política de Datos — 8a Representaciones</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.7;
+        }
+
+        header {
+            background: linear-gradient(135deg, #910909, #5c0a0a);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        header img {
+            height: 60px;
+            margin-bottom: 14px;
+        }
+
+        header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        header p {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            background: #fff;
+            border-bottom: 2px solid #e5e5e5;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .tab-btn {
+            padding: 16px 28px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 600;
+            color: #777;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            color: #910909;
+            border-bottom-color: #910909;
+        }
+
+        .tab-btn:hover { color: #910909; }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 20px 60px;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .doc-header {
+            background: #fff;
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-bottom: 24px;
+            border-left: 5px solid #910909;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .doc-header h2 {
+            font-size: 20px;
+            color: #910909;
+            margin-bottom: 8px;
+        }
+
+        .doc-header .meta {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 28px 32px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .card h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #910909;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card h3 .num {
+            background: #910909;
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .card p { font-size: 14px; color: #444; margin-bottom: 10px; }
+        .card p:last-child { margin-bottom: 0; }
+
+        .card ul {
+            margin: 8px 0 10px 20px;
+            font-size: 14px;
+            color: #444;
+        }
+
+        .card ul li { margin-bottom: 6px; }
+
+        .highlight {
+            background: #fff8f0;
+            border: 1px solid #f5c28a;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #7a4a00;
+        }
+
+        .highlight strong { color: #910909; }
+
+        .rights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .right-item {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 13px;
+        }
+
+        .right-item strong {
+            display: block;
+            color: #910909;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .contact-box {
+            background: #910909;
+            color: #fff;
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-top: 24px;
+            text-align: center;
+        }
+
+        .contact-box h3 { font-size: 16px; margin-bottom: 8px; }
+        .contact-box p { font-size: 13px; opacity: 0.9; margin-bottom: 4px; }
+        .contact-box a { color: #ffd0d0; font-weight: 600; text-decoration: none; }
+        .contact-box a:hover { text-decoration: underline; }
+
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: #910909;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .back-btn:hover { text-decoration: underline; }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #aaa;
+            border-top: 1px solid #e5e5e5;
+            background: #fff;
+        }
+
+        @media (max-width: 600px) {
+            .tab-btn { padding: 14px 16px; font-size: 13px; }
+            .card { padding: 20px; }
+            .doc-header { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <img src="imagenes/LOGO 8A ROJO-SIN FONDO.png" alt="8a Representaciones" onerror="this.style.display='none'">
+    <h1>Documentos Legales</h1>
+    <p>8a Representaciones S.A.S — NIT 900514510-6 — Bogotá, Colombia</p>
+</header>
+
+<div class="tabs">
+    <button class="tab-btn active" onclick="mostrarTab('terminos')">Términos y Condiciones</button>
+    <button class="tab-btn" onclick="mostrarTab('datos')">Política de Datos Personales</button>
+</div>
+
+<div class="container">
+
+    <!-- ==================== TÉRMINOS Y CONDICIONES ==================== -->
+    <div id="tab-terminos" class="tab-content active">
+
+        <div class="doc-header">
+            <h2>Términos y Condiciones de Uso</h2>
+            <p class="meta">Última actualización: marzo de 2026 · Versión 1.0</p>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">1</span> Identificación del responsable</h3>
+            <p>El presente portal es operado por <strong>8a Representaciones S.A.S</strong>, sociedad identificada con NIT <strong>900514510-6</strong>, con domicilio en la ciudad de <strong>Bogotá, Colombia</strong>.</p>
+            <p>Para cualquier consulta relacionada con estos términos puede contactarnos en: <strong>empresa@8arepresentaciones.com</strong></p>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">2</span> Objeto del portal</h3>
+            <p>El Portal de Actores de 8a Representaciones es una plataforma digital que permite a los artistas registrados gestionar su perfil profesional, cargar fotografías, registrar su experiencia artística y conocer las convocatorias activas publicadas por la agencia.</p>
+            <p>El acceso al portal está restringido a personas que hayan sido previamente vinculadas o invitadas por 8a Representaciones S.A.S.</p>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">3</span> Condiciones de acceso y registro</h3>
+            <ul>
+                <li>El usuario debe ser mayor de 18 años o contar con autorización de su representante legal.</li>
+                <li>La información suministrada durante el registro debe ser veraz, completa y actualizada.</li>
+                <li>El usuario es responsable de mantener la confidencialidad de sus credenciales de acceso.</li>
+                <li>Cada usuario solo puede tener una cuenta activa en el portal.</li>
+                <li>8a Representaciones S.A.S se reserva el derecho de suspender o eliminar cuentas que incumplan estos términos.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">4</span> Uso del contenido y fotografías</h3>
+            <p>Al cargar fotografías, imágenes o cualquier otro contenido en el portal, el usuario:</p>
+            <ul>
+                <li>Declara ser el titular o tener los derechos necesarios sobre dicho contenido.</li>
+                <li>Autoriza a 8a Representaciones S.A.S a utilizar dicho contenido con fines de representación artística, presentación a directores de casting y difusión en los portafolios digitales de la agencia.</li>
+                <li>Acepta que el contenido cargado no vulnere derechos de terceros ni contenga material ilegal, ofensivo o que incumpla la normativa colombiana vigente.</li>
+            </ul>
+            <div class="highlight">
+                <strong>Límite de almacenamiento:</strong> Cada actor puede cargar hasta <strong>5 fotografías</strong> adicionales con un tamaño máximo de <strong>3 MB por imagen</strong>. Para enviar un mayor volumen de material fotográfico puede utilizar el enlace WeTransfer disponible en su perfil.
+            </div>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">5</span> Propiedad intelectual</h3>
+            <p>El diseño, código fuente, logotipos, marcas y demás elementos del portal son propiedad exclusiva de <strong>8a Representaciones S.A.S</strong> y están protegidos por la legislación colombiana sobre derechos de autor.</p>
+            <p>Queda prohibida la reproducción, distribución o uso comercial de cualquier elemento del portal sin autorización expresa y escrita de 8a Representaciones S.A.S.</p>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">6</span> Convocatorias y postulaciones</h3>
+            <p>Las convocatorias publicadas en el portal son oportunidades de trabajo gestionadas por 8a Representaciones S.A.S. La publicación de una convocatoria no garantiza la selección ni contratación del actor postulado.</p>
+            <p>8a Representaciones S.A.S actúa como intermediario entre los actores y los directores o productoras contratantes. La agencia no es responsable de las decisiones finales de selección.</p>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">7</span> Limitación de responsabilidad</h3>
+            <p>8a Representaciones S.A.S no será responsable por:</p>
+            <ul>
+                <li>Interrupciones del servicio por mantenimiento, fallas técnicas o causas de fuerza mayor.</li>
+                <li>Pérdida de datos ocasionada por uso indebido del portal por parte del usuario.</li>
+                <li>Consecuencias derivadas del uso no autorizado de las credenciales del usuario.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">8</span> Modificaciones y vigencia</h3>
+            <p>8a Representaciones S.A.S se reserva el derecho de modificar estos Términos y Condiciones en cualquier momento. Los cambios serán notificados a través del portal o por correo electrónico. El uso continuado del portal después de la notificación constituye aceptación de los nuevos términos.</p>
+            <p>Estos términos se rigen por las leyes de la República de Colombia. Cualquier controversia será resuelta ante los jueces competentes de la ciudad de Bogotá.</p>
+        </div>
+
+    </div>
+
+    <!-- ==================== POLÍTICA DE DATOS ==================== -->
+    <div id="tab-datos" class="tab-content">
+
+        <div class="doc-header">
+            <h2>Política de Tratamiento de Datos Personales</h2>
+            <p class="meta">En cumplimiento de la Ley 1581 de 2012, el Decreto 1377 de 2013 y las normas concordantes · Última actualización: marzo de 2026</p>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">1</span> Responsable del tratamiento</h3>
+            <p><strong>8a Representaciones S.A.S</strong><br>
+            NIT: 900514510-6<br>
+            Domicilio: Bogotá, Colombia<br>
+            Correo electrónico: <strong>empresa@8arepresentaciones.com</strong></p>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">2</span> Datos personales que se recopilan</h3>
+            <p>En el portal se recopilan los siguientes datos personales del titular:</p>
+            <ul>
+                <li><strong>Datos de identificación:</strong> nombre completo, fecha de nacimiento, género, ciudad y país de nacimiento.</li>
+                <li><strong>Datos de contacto:</strong> correo electrónico, número de teléfono.</li>
+                <li><strong>Datos profesionales:</strong> experiencia artística, formación, habilidades, idiomas, reel audiovisual.</li>
+                <li><strong>Datos físicos:</strong> altura, peso, tallas, color de ojos y cabello, edad aparente.</li>
+                <li><strong>Datos sensibles:</strong> fotografías personales y de perfil. El tratamiento de estos datos requiere autorización expresa del titular.</li>
+                <li><strong>Datos de acceso:</strong> correo electrónico y contraseña cifrada. No se almacena la contraseña en texto plano.</li>
+            </ul>
+            <div class="highlight">
+                <strong>Datos sensibles:</strong> Las fotografías cargadas en el portal son consideradas datos sensibles conforme al artículo 5 de la Ley 1581 de 2012. Su tratamiento requiere autorización expresa del titular, la cual se otorga al momento de cargarlas en el portal.
+            </div>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">3</span> Finalidades del tratamiento</h3>
+            <p>Los datos personales recopilados serán utilizados para:</p>
+            <ul>
+                <li>Gestionar el registro y perfil profesional del actor en el portal.</li>
+                <li>Presentar el perfil del actor a directores de casting, productoras y clientes de la agencia.</li>
+                <li>Publicar el perfil del actor en los portafolios digitales de 8a Representaciones S.A.S (según autorización del actor).</li>
+                <li>Notificar al actor sobre convocatorias activas relevantes para su perfil.</li>
+                <li>Gestionar contratos, postulaciones y comunicaciones propias de la actividad de representación artística.</li>
+                <li>Cumplir obligaciones legales y reglamentarias aplicables.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">4</span> Autorización del titular</h3>
+            <p>Conforme al artículo 9 de la Ley 1581 de 2012, el tratamiento de datos personales requiere la autorización previa, expresa e informada del titular. Esta autorización se obtiene al momento en que el actor:</p>
+            <ul>
+                <li>Acepta estos términos durante el proceso de registro en el portal.</li>
+                <li>Carga fotografías u otro contenido en su perfil.</li>
+                <li>Autoriza la publicación de su perfil en los portafolios de la agencia.</li>
+            </ul>
+            <p>El titular puede revocar su autorización en cualquier momento, sin efecto retroactivo, enviando su solicitud a <strong>empresa@8arepresentaciones.com</strong>.</p>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">5</span> Derechos del titular</h3>
+            <p>De conformidad con el artículo 8 de la Ley 1581 de 2012, el titular de los datos tiene los siguientes derechos:</p>
+            <div class="rights-grid">
+                <div class="right-item">
+                    <strong>Conocer</strong>
+                    Acceder gratuitamente a sus datos personales almacenados en el portal.
+                </div>
+                <div class="right-item">
+                    <strong>Actualizar</strong>
+                    Solicitar la corrección o actualización de sus datos cuando sean inexactos o incompletos.
+                </div>
+                <div class="right-item">
+                    <strong>Suprimir</strong>
+                    Solicitar la eliminación de sus datos cuando considere que no están siendo tratados conforme a la ley.
+                </div>
+                <div class="right-item">
+                    <strong>Revocar</strong>
+                    Retirar la autorización otorgada para el tratamiento de sus datos personales.
+                </div>
+                <div class="right-item">
+                    <strong>Reclamar</strong>
+                    Presentar quejas ante la Superintendencia de Industria y Comercio (SIC) por infracciones a la normativa de protección de datos.
+                </div>
+                <div class="right-item">
+                    <strong>No ser objeto</strong>
+                    No ser objeto de decisiones basadas únicamente en tratamientos automatizados que le produzcan efectos jurídicos.
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">6</span> Transferencia y transmisión de datos</h3>
+            <p>Los datos personales del titular podrán ser compartidos con:</p>
+            <ul>
+                <li><strong>Directores de casting y productoras:</strong> en el marco de convocatorias y procesos de selección artística, previa autorización del titular.</li>
+                <li><strong>Proveedores tecnológicos:</strong> servicios de alojamiento web y correo electrónico, bajo acuerdos de confidencialidad.</li>
+            </ul>
+            <p>8a Representaciones S.A.S no venderá, arrendará ni cederá los datos personales de sus actores a terceros con fines comerciales ajenos a la actividad de representación artística.</p>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">7</span> Seguridad de la información</h3>
+            <p>8a Representaciones S.A.S implementa medidas técnicas y organizativas para proteger los datos personales, entre ellas:</p>
+            <ul>
+                <li>Cifrado de contraseñas mediante algoritmos de hash seguro (bcrypt).</li>
+                <li>Autenticación de doble factor (2FA) disponible para todos los usuarios.</li>
+                <li>Acceso restringido a los datos según el rol del usuario (actor, director de casting, administrador).</li>
+                <li>Registro de auditoría de accesos y modificaciones relevantes.</li>
+                <li>Transmisión de datos mediante protocolos seguros (HTTPS).</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">8</span> Tiempo de conservación</h3>
+            <p>Los datos personales se conservarán mientras el actor mantenga una cuenta activa en el portal. Una vez el actor solicite la eliminación de su cuenta, sus datos serán suprimidos de los sistemas activos en un plazo máximo de <strong>30 días hábiles</strong>, salvo que exista una obligación legal que exija su conservación.</p>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">9</span> Procedimiento para ejercer derechos</h3>
+            <p>Para ejercer cualquiera de los derechos mencionados, el titular deberá enviar una solicitud escrita a <strong>empresa@8arepresentaciones.com</strong> indicando:</p>
+            <ul>
+                <li>Nombre completo e identificación del titular.</li>
+                <li>Descripción clara del derecho que desea ejercer.</li>
+                <li>Documentos o información de soporte que considere pertinentes.</li>
+            </ul>
+            <p>8a Representaciones S.A.S dará respuesta en un plazo máximo de <strong>15 días hábiles</strong> contados a partir de la recepción de la solicitud, conforme al artículo 14 de la Ley 1581 de 2012.</p>
+        </div>
+
+        <div class="card">
+            <h3><span class="num">10</span> Autoridad de control</h3>
+            <p>El titular que considere que sus derechos han sido vulnerados puede presentar una queja ante la <strong>Superintendencia de Industria y Comercio (SIC)</strong>, entidad encargada de velar por el cumplimiento de la Ley 1581 de 2012 en Colombia.</p>
+            <p>Sitio web: <strong>www.sic.gov.co</strong></p>
+        </div>
+
+        <div class="contact-box">
+            <h3>¿Tienes preguntas sobre el manejo de tus datos?</h3>
+            <p>Escríbenos a</p>
+            <p><a href="mailto:empresa@8arepresentaciones.com">empresa@8arepresentaciones.com</a></p>
+            <p style="margin-top:10px;font-size:12px;opacity:0.7">8a Representaciones S.A.S · NIT 900514510-6 · Bogotá, Colombia</p>
+        </div>
+
+    </div>
+
+</div>
+
+<footer>
+    © 2026 8a Representaciones S.A.S — NIT 900514510-6 — Bogotá, Colombia
+</footer>
+
+<script>
+    function mostrarTab(tab) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        event.target.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
