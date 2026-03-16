@@ -460,10 +460,9 @@ function construirFormHTML(a) {
         <div class="form-group">
             <label>Portafolio</label>
             <select id="fPortafolio">
-                <option value="ninguno" ${(!a.portafolio||a.portafolio==='ninguno')?'selected':''}>Sin portafolio</option>
+                <option value="ninguno" ${(!a.portafolio||a.portafolio==='ninguno'||a.portafolio==='ambos')?'selected':''}>Sin portafolio</option>
                 <option value="paola_ochoa" ${a.portafolio==='paola_ochoa'?'selected':''}>Paola Ochoa</option>
                 <option value="8a_representaciones" ${a.portafolio==='8a_representaciones'?'selected':''}>8a Representaciones</option>
-                <option value="ambos" ${a.portafolio==='ambos'?'selected':''}>Ambos portafolios</option>
             </select>
         </div>
         <div class="form-group">
