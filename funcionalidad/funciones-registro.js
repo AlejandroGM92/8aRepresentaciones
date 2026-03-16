@@ -76,16 +76,10 @@ document.getElementById('aceptoTerminos').addEventListener('change', function() 
     if (this.checked) document.getElementById('terminosError').classList.remove('show');
 });
 
-// Términos y condiciones
+// Términos y condiciones — abre la página completa en nueva pestaña
 document.querySelector('.link-terminos').addEventListener('click', function(e) {
     e.preventDefault();
-    alert('Términos y Condiciones de 8a Representaciones\n\n' +
-          '1. Acepto proporcionar información veraz y actualizada.\n' +
-          '2. Autorizo el uso de mis fotos y datos para fines de representación artística.\n' +
-          '3. Comprendo que 8a Representaciones puede contactarme para oportunidades laborales.\n' +
-          '4. Acepto mantener mi perfil actualizado con información precisa.\n' +
-          '5. Respeto los derechos de autor de todo el material que comparto.\n\n' +
-          'Para más información, contáctanos.');
+    window.open('terminos-y-condiciones.html', '_blank');
 });
 
 // Envío del formulario
