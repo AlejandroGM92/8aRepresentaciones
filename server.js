@@ -894,7 +894,7 @@ app.get('/api/auth/2fa/status', verificarToken, async (req, res) => {
 app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
     try {
         const { nombre, edad_min, edad_max, habilidades, idioma, nivel_idioma,
-                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, desnudos, pais_nacimiento, ciudad_nacimiento } = req.query;
+                anios_exp, altura_min, altura_max, color_ojos, color_cabello, escenas_sexo, desnudos, pais_nacimiento, ciudad_nacimiento, portafolio } = req.query;
 
         let query = `SELECT id, nombre, email, telefono, fecha_nacimiento, genero, altura, peso,
             color_ojos, color_cabello, talla_camiseta, talla_pantalon, talla_zapatos,
@@ -902,7 +902,7 @@ app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
             foto_perfil, fecha_registro, is_admin, is_casting,
             anio_inicio_experiencia, edad_aparente_min, edad_aparente_max,
             escenas_sexo, desnudos, fechas_no_disponibles,
-            ciudad_nacimiento, pais_nacimiento,
+            ciudad_nacimiento, pais_nacimiento, portafolio,
             TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
             FROM actores WHERE 1=1`;
         const params = [];
@@ -934,6 +934,7 @@ app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
         }
         if (pais_nacimiento) { query += ' AND pais_nacimiento = ?'; params.push(pais_nacimiento); }
         if (ciudad_nacimiento) { query += ' AND ciudad_nacimiento LIKE ?'; params.push(`%${ciudad_nacimiento}%`); }
+        if (portafolio) { query += ` AND (portafolio = ? OR portafolio = 'ambos')`; params.push(portafolio); }
 
         query += ' ORDER BY nombre ASC';
 
@@ -966,7 +967,7 @@ app.get('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              foto_perfil, fecha_registro, is_admin, is_casting,
              edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
              fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
-             ciudad_nacimiento, pais_nacimiento, puede_subir_contrato,
+             ciudad_nacimiento, pais_nacimiento, puede_subir_contrato, portafolio,
              TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
              FROM actores WHERE id = ?`,
             [req.params.id]
@@ -990,7 +991,7 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
                 edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
                 fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
                 ciudad_nacimiento, pais_nacimiento, puede_subir_contrato,
-                acentos_maneja, acentos_no_maneja } = req.body;
+                acentos_maneja, acentos_no_maneja, portafolio } = req.body;
 
         await promisePool.query(
             `UPDATE actores SET nombre=?, email=?, telefono=?, fecha_nacimiento=?, genero=?,
@@ -1000,7 +1001,7 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              edad_aparente_min=?, edad_aparente_max=?, tiene_manager=?, nombre_manager=?,
              fechas_no_disponibles=?, anio_inicio_experiencia=?, escenas_sexo=?, desnudos=?, link_reel=?,
              ciudad_nacimiento=?, pais_nacimiento=?, puede_subir_contrato=?,
-             acentos_maneja=?, acentos_no_maneja=?
+             acentos_maneja=?, acentos_no_maneja=?, portafolio=?
              WHERE id=?`,
             [nombre, email, telefono || null, fecha_nacimiento || null, genero || null,
              altura || null, peso || null, color_ojos || null, color_cabello || null,
@@ -1017,6 +1018,7 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              ciudad_nacimiento || null, pais_nacimiento || null,
              puede_subir_contrato ? 1 : 0,
              acentos_maneja || null, acentos_no_maneja || null,
+             portafolio || 'ambos',
              req.params.id]
         );
         res.json({ mensaje: 'Actor actualizado exitosamente' });
@@ -1036,7 +1038,7 @@ app.post('/api/admin/actores', verificarAdmin, async (req, res) => {
             experiencia, formacion_artistica, redes_sociales, idiomas,
             edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
             fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel,
-            ciudad_nacimiento, pais_nacimiento
+            ciudad_nacimiento, pais_nacimiento, portafolio
         } = req.body;
 
         if (!nombre || !email || !password) {
@@ -1059,9 +1061,9 @@ app.post('/api/admin/actores', verificarAdmin, async (req, res) => {
                 experiencia, formacion_artistica, redes_sociales, idiomas,
                 edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
                 fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, link_reel,
-                ciudad_nacimiento, pais_nacimiento,
+                ciudad_nacimiento, pais_nacimiento, portafolio,
                 is_casting, perfil_completo, fecha_registro
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, NOW())`,
             [
                 nombre, email, hashedPassword,
                 telefono || null, fecha_nacimiento || null, genero || null,
@@ -1074,6 +1076,7 @@ app.post('/api/admin/actores', verificarAdmin, async (req, res) => {
                 fechas_no_disponibles || null, anio_inicio_experiencia || null,
                 escenas_sexo != null ? escenas_sexo : null, link_reel || null,
                 ciudad_nacimiento || null, pais_nacimiento || null,
+                portafolio || 'ambos',
                 is_casting ? 1 : 0
             ]
         );

@@ -458,6 +458,14 @@ function construirFormHTML(a) {
             <p style="font-size:12px;color:#888;margin:6px 0 0 28px">Cuando está activado, el actor verá el botón para subir su PDF en su perfil.</p>
         </div>
         <div class="form-group">
+            <label>Portafolio</label>
+            <select id="fPortafolio">
+                <option value="ambos" ${(a.portafolio||'ambos')==='ambos'?'selected':''}>Ambos portafolios</option>
+                <option value="paola_ochoa" ${a.portafolio==='paola_ochoa'?'selected':''}>Paola Ochoa</option>
+                <option value="8a_representaciones" ${a.portafolio==='8a_representaciones'?'selected':''}>8a Representaciones</option>
+            </select>
+        </div>
+        <div class="form-group">
             <label>Biografía</label>
             <textarea id="fBiografia" rows="4">${a.biografia || ''}</textarea>
         </div>
@@ -860,6 +868,7 @@ window.guardarActor = async function() {
         link_reel:             get('fLinkReel').trim(),
         acentos_maneja:        acentosManejaArr.length ? JSON.stringify(acentosManejaArr) : null,
         acentos_no_maneja:     acentosNoManejaArr.length ? JSON.stringify(acentosNoManejaArr) : null,
+        portafolio:            get('fPortafolio') || 'ambos',
         is_admin:              rol === 'admin',
         is_casting:            rol === 'casting',
     };

@@ -95,6 +95,7 @@ function getFiltros() {
         pais_nacimiento:  document.getElementById('filtroPais').value,
         ciudad_nacimiento: document.getElementById('filtroCiudad').value.trim(),
         acento:           document.getElementById('filtroAcento').value,
+        portafolio:       document.getElementById('filtroPortafolio').value,
     };
 }
 
@@ -107,7 +108,7 @@ async function cargarActores(filtros = {}) {
     const serverKeys = ['nombre','habilidades','idioma','nivel_idioma','anios_exp',
                         'edad_min','edad_max','altura_min','altura_max',
                         'color_ojos','color_cabello','escenas_sexo','desnudos',
-                        'pais_nacimiento','ciudad_nacimiento'];
+                        'pais_nacimiento','ciudad_nacimiento','portafolio'];
     serverKeys.forEach(k => { if (filtros[k]) params.append(k, filtros[k]); });
     try {
         const res = await fetch(`${API_URL}/admin/actores?${params}`, {
@@ -179,6 +180,11 @@ function renderActores(actores) {
         })();
         const nombre = esc(a.nombre || '');
         const fisico = [a.altura ? a.altura + ' cm' : null, a.color_ojos ? esc(a.color_ojos) : null].filter(Boolean);
+        const portafolioBadge = a.portafolio === 'paola_ochoa'
+            ? '<span style="display:inline-block;margin:4px 0 0;padding:2px 8px;border-radius:20px;background:#6a0dad;color:#fff;font-size:10px;font-weight:600">Paola Ochoa</span>'
+            : a.portafolio === '8a_representaciones'
+            ? '<span style="display:inline-block;margin:4px 0 0;padding:2px 8px;border-radius:20px;background:#910909;color:#fff;font-size:10px;font-weight:600">8a Representaciones</span>'
+            : '<span style="display:inline-block;margin:4px 0 0;padding:2px 8px;border-radius:20px;background:#444;color:#fff;font-size:10px;font-weight:600">Ambos portafolios</span>';
 
         const fechasND = parseJSON(a.fechas_no_disponibles, []);
         const hoy = new Date().toISOString().split('T')[0];
@@ -208,6 +214,7 @@ function renderActores(actores) {
             </div>
             <div class="actor-body">
                 <h3 class="actor-name">${nombre || '—'}</h3>
+                ${portafolioBadge}
                 ${edad ? `<p class="actor-age">${edad}${edadAp ? ' · ' + edadAp : ''}</p>` : (edadAp ? `<p class="actor-age">${edadAp}</p>` : '')}
                 <p class="actor-email">${esc(a.email)}</p>
                 ${fisico.length ? `<div class="actor-tags">${fisico.map(t => `<span class="tag tag-talla">${t}</span>`).join('')}</div>` : ''}
@@ -271,6 +278,7 @@ function mostrarModalVista(a, fotos) {
                         ${a.is_admin ? '<span class="tag tag-exp">Admin</span>' : ''}
                         ${a.is_casting ? '<span class="tag tag-talla">Casting</span>' : ''}
                         ${a.genero ? `<span class="tag tag-talla">${esc(a.genero)}</span>` : ''}
+                        ${a.portafolio === 'paola_ochoa' ? '<span class="tag" style="background:#6a0dad;color:#fff">Paola Ochoa</span>' : a.portafolio === '8a_representaciones' ? '<span class="tag" style="background:#910909;color:#fff">8a Representaciones</span>' : '<span class="tag" style="background:#444;color:#fff">Ambos portafolios</span>'}
                     </div>
                 </div>
             </div>
