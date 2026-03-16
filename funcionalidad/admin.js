@@ -382,7 +382,7 @@ function mostrarModalVista(a, fotos) {
         </div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="cerrarModal()">Cerrar</button>
-            <button class="btn-excel" onclick="descargarExcel(${a.id}, ${JSON.stringify(a.nombre||'actor')})">&#8595; Excel</button>
+            <button class="btn-excel" data-id="${a.id}" data-nombre="${esc(a.nombre||'actor')}" onclick="descargarExcel(this.dataset.id, this.dataset.nombre)">&#8595; Excel</button>
             <button class="btn-primary" onclick="irEditarActor(${a.id})">Editar Perfil Completo</button>
         </div>
     `;
