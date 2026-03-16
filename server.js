@@ -779,7 +779,7 @@ app.get('/api/auth/2fa/setup', verificarToken, async (req, res) => {
         if (!actor) return res.status(404).json({ error: 'Actor no encontrado' });
         if (actor.totp_enabled) return res.status(400).json({ error: 'El 2FA ya está activado' });
 
-        const secret = speakeasy.generateSecret({ name: `8a Representaciones:${actor.email}`, issuer: '8a Representaciones', length: 20 });
+        const secret = speakeasy.generateSecret({ name: `Portal 8a Representaciones:${actor.email}`, issuer: 'Portal 8a Representaciones', length: 20 });
         // Guardar secreto temporal (no activado aún) hasta que el usuario verifique
         await promisePool.query('UPDATE actores SET totp_secret=? WHERE id=?', [secret.base32, req.userId]);
 
