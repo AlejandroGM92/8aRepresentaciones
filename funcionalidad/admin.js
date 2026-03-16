@@ -184,7 +184,9 @@ function renderActores(actores) {
             ? '<span style="display:inline-block;margin:4px 0 0;padding:2px 8px;border-radius:20px;background:#6a0dad;color:#fff;font-size:10px;font-weight:600">Paola Ochoa</span>'
             : a.portafolio === '8a_representaciones'
             ? '<span style="display:inline-block;margin:4px 0 0;padding:2px 8px;border-radius:20px;background:#910909;color:#fff;font-size:10px;font-weight:600">8a Representaciones</span>'
-            : '<span style="display:inline-block;margin:4px 0 0;padding:2px 8px;border-radius:20px;background:#444;color:#fff;font-size:10px;font-weight:600">Ambos portafolios</span>';
+            : a.portafolio === 'ambos'
+            ? '<span style="display:inline-block;margin:4px 0 0;padding:2px 8px;border-radius:20px;background:#444;color:#fff;font-size:10px;font-weight:600">Ambos portafolios</span>'
+            : '<span style="display:inline-block;margin:4px 0 0;padding:2px 8px;border-radius:20px;background:#ccc;color:#555;font-size:10px;font-weight:600">Sin portafolio</span>';
 
         const fechasND = parseJSON(a.fechas_no_disponibles, []);
         const hoy = new Date().toISOString().split('T')[0];
@@ -278,7 +280,7 @@ function mostrarModalVista(a, fotos) {
                         ${a.is_admin ? '<span class="tag tag-exp">Admin</span>' : ''}
                         ${a.is_casting ? '<span class="tag tag-talla">Casting</span>' : ''}
                         ${a.genero ? `<span class="tag tag-talla">${esc(a.genero)}</span>` : ''}
-                        ${a.portafolio === 'paola_ochoa' ? '<span class="tag" style="background:#6a0dad;color:#fff">Paola Ochoa</span>' : a.portafolio === '8a_representaciones' ? '<span class="tag" style="background:#910909;color:#fff">8a Representaciones</span>' : '<span class="tag" style="background:#444;color:#fff">Ambos portafolios</span>'}
+                        ${a.portafolio === 'paola_ochoa' ? '<span class="tag" style="background:#6a0dad;color:#fff">Paola Ochoa</span>' : a.portafolio === '8a_representaciones' ? '<span class="tag" style="background:#910909;color:#fff">8a Representaciones</span>' : a.portafolio === 'ambos' ? '<span class="tag" style="background:#444;color:#fff">Ambos portafolios</span>' : '<span class="tag" style="background:#ccc;color:#555">Sin portafolio</span>'}
                     </div>
                 </div>
             </div>

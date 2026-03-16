@@ -934,7 +934,13 @@ app.get('/api/admin/actores', verificarAdmin, async (req, res) => {
         }
         if (pais_nacimiento) { query += ' AND pais_nacimiento = ?'; params.push(pais_nacimiento); }
         if (ciudad_nacimiento) { query += ' AND ciudad_nacimiento LIKE ?'; params.push(`%${ciudad_nacimiento}%`); }
-        if (portafolio) { query += ` AND (portafolio = ? OR portafolio = 'ambos')`; params.push(portafolio); }
+        if (portafolio) {
+            if (portafolio === 'ninguno') {
+                query += ` AND (portafolio = 'ninguno' OR portafolio IS NULL)`;
+            } else {
+                query += ` AND (portafolio = ? OR portafolio = 'ambos')`; params.push(portafolio);
+            }
+        }
 
         query += ' ORDER BY nombre ASC';
 
@@ -1018,7 +1024,7 @@ app.put('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              ciudad_nacimiento || null, pais_nacimiento || null,
              puede_subir_contrato ? 1 : 0,
              acentos_maneja || null, acentos_no_maneja || null,
-             portafolio || 'ambos',
+             portafolio || 'ninguno',
              req.params.id]
         );
         res.json({ mensaje: 'Actor actualizado exitosamente' });
@@ -1076,7 +1082,7 @@ app.post('/api/admin/actores', verificarAdmin, async (req, res) => {
                 fechas_no_disponibles || null, anio_inicio_experiencia || null,
                 escenas_sexo != null ? escenas_sexo : null, link_reel || null,
                 ciudad_nacimiento || null, pais_nacimiento || null,
-                portafolio || 'ambos',
+                portafolio || 'ninguno',
                 is_casting ? 1 : 0
             ]
         );
