@@ -51,6 +51,22 @@ function estaNoDisponibleHoy(actor) {
     return fechas.some(f => f.inicio && f.fin && hoy >= f.inicio && hoy <= f.fin);
 }
 
+function estaNoDisponibleEnRango(actor, fechaInicio, fechaFin) {
+    const fechas = parseJSON(actor.fechas_no_disponibles, []);
+    return fechas.some(f => {
+        const ini = f.inicio || f.desde || '';
+        const fin = f.fin   || f.hasta || '';
+        if (!ini || !fin) return false;
+        return ini <= fechaFin && fin >= fechaInicio;
+    });
+}
+
+function trabajoEnProduccion(actor, nombreProduccion) {
+    const exps = parseJSON(actor.experiencia, []);
+    const busqueda = nombreProduccion.toLowerCase().trim();
+    return exps.some(e => (e.nombre || '').toLowerCase().includes(busqueda));
+}
+
 // ==================== AUTH ====================
 
 function verificarCasting() {
@@ -86,6 +102,9 @@ function getFiltros() {
         pais_nacimiento:  document.getElementById('filtroPais').value,
         ciudad_nacimiento: document.getElementById('filtroCiudad').value.trim(),
         acento:           document.getElementById('filtroAcento').value,
+        fechaInicioRodaje: document.getElementById('filtroFechaInicio').value,
+        fechaFinRodaje:   document.getElementById('filtroFechaFin').value,
+        produccion:       document.getElementById('filtroProduccion').value.trim(),
     };
 }
 
@@ -128,9 +147,16 @@ async function cargarActores(filtros = {}) {
             });
         }
 
-        // Filtro client-side: ocultar actores no disponibles hoy (solo cuando se filtra)
-        if (filtroFechasActivo) {
+        // Filtro client-side: disponibilidad para rodaje
+        if (filtros.fechaInicioRodaje && filtros.fechaFinRodaje) {
+            actores = actores.filter(a => !estaNoDisponibleEnRango(a, filtros.fechaInicioRodaje, filtros.fechaFinRodaje));
+        } else if (filtroFechasActivo) {
             actores = actores.filter(a => !estaNoDisponibleHoy(a));
+        }
+
+        // Filtro client-side: excluir actores que ya grabaron en esa producción
+        if (filtros.produccion) {
+            actores = actores.filter(a => !trabajoEnProduccion(a, filtros.produccion));
         }
 
         return actores;
@@ -146,7 +172,14 @@ function renderActores(actores) {
     const grid = document.getElementById('actoresGrid');
     const contador = document.getElementById('contadorActores');
     const n = actores.length;
-    const sufijo = filtroFechasActivo ? ' · disponibles hoy' : '';
+    const f = getFiltros();
+    let sufijo = '';
+    if (f.fechaInicioRodaje && f.fechaFinRodaje) {
+        sufijo = ` · disponibles ${f.fechaInicioRodaje} → ${f.fechaFinRodaje}`;
+    } else if (filtroFechasActivo) {
+        sufijo = ' · disponibles hoy';
+    }
+    if (f.produccion) sufijo += ` · sin "${f.produccion}"`;
     contador.textContent = `${n} actor${n !== 1 ? 'es' : ''} encontrado${n !== 1 ? 's' : ''}${sufijo}`;
 
     if (n === 0) {
@@ -363,6 +396,9 @@ document.getElementById('btnLimpiarFiltros').addEventListener('click', async () 
     document.getElementById('filtroCiudad').value = '';
     document.getElementById('filtroAcento').value = '';
     document.getElementById('filtroDesnudos').value = '';
+    document.getElementById('filtroFechaInicio').value = '';
+    document.getElementById('filtroFechaFin').value = '';
+    document.getElementById('filtroProduccion').value = '';
     filtroFechasActivo = false;
     const actores = await cargarActores();
     renderActores(actores);

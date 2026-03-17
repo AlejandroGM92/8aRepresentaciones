@@ -32,6 +32,7 @@
             <div class="nav-actions" id="navMenu">
                 <a href="convocatorias.html" class="nav-link nav-link-btn">📢 Convocatorias</a>
                 <a href="reporte-conexiones.html" class="nav-link nav-link-btn">📡 Conexiones</a>
+                <a href="admin-importar.html" class="nav-link nav-link-btn">📥 Importar</a>
                 <a href="#" class="nav-link nav-link-btn" id="btnSeguridad">🔐 Seguridad</a>
                 <a href="#" class="nav-link nav-link-btn" id="btnCerrarSesion">Cerrar Sesión</a>
             </div>
@@ -222,6 +223,24 @@
                             <option value="paola_ochoa">Paola Ochoa</option>
                             <option value="8a_representaciones">8a Representaciones</option>
                         </select>
+                    </div>
+                </div>
+                <!-- Disponibilidad para rodaje -->
+                <div style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
+                    <div style="font-size:12px;font-weight:700;color:#910909;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">📅 Disponibilidad para rodaje</div>
+                    <div class="filters-grid" style="grid-template-columns:1fr 1fr;gap:10px">
+                        <div class="form-group">
+                            <label for="filtroFechaInicio">Fecha inicio</label>
+                            <input type="date" id="filtroFechaInicio">
+                        </div>
+                        <div class="form-group">
+                            <label for="filtroFechaFin">Fecha fin</label>
+                            <input type="date" id="filtroFechaFin">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:8px">
+                        <label for="filtroProduccion">Excluir actores que grabaron en</label>
+                        <input type="text" id="filtroProduccion" placeholder="Ej: Los 33">
                     </div>
                 </div>
                 <div class="filters-actions">

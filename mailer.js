@@ -204,10 +204,74 @@ async function enviarRecordatorioFechas(actor, diasRestantes) {
     }
 }
 
+// ==================== 6. CREDENCIALES DE ACCESO (IMPORTACIÓN MASIVA) ====================
+
+async function enviarCredenciales(actor, passwordTemporal) {
+    if (!actor.email) return false;
+    const html = baseHTML(`
+        <p>Hola <strong>${esc(actor.nombre)}</strong>,</p>
+        <p>Tu cuenta en el <strong>Portal de Actores de 8a Representaciones</strong> ha sido creada. Ya puedes acceder con las siguientes credenciales:</p>
+        <div class="dato"><strong>Correo:</strong> ${esc(actor.email)}</div>
+        <div class="dato"><strong>Contraseña temporal:</strong> <span style="font-size:18px;font-weight:700;color:#910909;letter-spacing:2px">${esc(passwordTemporal)}</span></div>
+        <a href="${APP_URL}/login.html" class="btn">Ingresar al portal</a>
+        <hr>
+        <p style="font-size:13px;color:#555">Una vez ingreses, te recomendamos:</p>
+        <ol style="font-size:13px;color:#555;line-height:1.8">
+            <li>Cambiar tu contraseña por una personal en <strong>Mi Perfil → Seguridad</strong></li>
+            <li>Completar tu información artística (experiencia, habilidades, fotos)</li>
+            <li>Revisar las convocatorias activas disponibles para ti</li>
+        </ol>
+        <p style="font-size:12px;color:#aaa">Si tienes problemas para acceder, escríbenos a <a href="mailto:empresa@8arepresentaciones.com" style="color:#910909">empresa@8arepresentaciones.com</a></p>
+    `);
+    try {
+        await transporter.sendMail({
+            from: FROM,
+            to: actor.email,
+            subject: '🎬 Tu acceso al Portal de Actores — 8a Representaciones',
+            html
+        });
+        return true;
+    } catch (e) {
+        console.error(`Mailer credenciales (${actor.email}):`, e.message);
+        return false;
+    }
+}
+
+// ==================== 7. ACTUALIZACIÓN DE EXPERIENCIA (aviso al admin) ====================
+
+async function enviarActualizacionExperiencia(actor, camposActualizados) {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    if (!adminEmail) return;
+    const campos = camposActualizados.join(' y ');
+    const html = baseHTML(`
+        <p>El actor <strong>${esc(actor.nombre)}</strong> ha actualizado su <strong>${esc(campos)}</strong>.</p>
+        <div class="dato"><strong>Actor:</strong> ${esc(actor.nombre)}</div>
+        <div class="dato"><strong>Correo:</strong> ${esc(actor.email)}</div>
+        <div class="dato"><strong>Fecha:</strong> ${new Date().toLocaleString('es-CO')}</div>
+        <div class="dato"><strong>Sección actualizada:</strong> ${esc(campos)}</div>
+        <a href="${APP_URL}/admin.html" class="btn">Ver perfil en el admin</a>
+        <p style="font-size:13px;color:#888;margin-top:16px">
+            Revisa el perfil del actor para ver los cambios resaltados en amarillo.
+        </p>
+    `);
+    try {
+        await transporter.sendMail({
+            from: FROM,
+            to: adminEmail,
+            subject: `${actor.nombre} actualizó su ${campos}`,
+            html
+        });
+    } catch (e) {
+        console.error('Mailer actualización experiencia:', e.message);
+    }
+}
+
 module.exports = {
     enviarBienvenida,
     enviarConvocatoria,
     enviarContratoSubido,
     enviarResetPassword,
-    enviarRecordatorioFechas
+    enviarRecordatorioFechas,
+    enviarCredenciales,
+    enviarActualizacionExperiencia
 };

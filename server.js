@@ -358,7 +358,8 @@ app.get('/api/perfil', verificarToken, async (req, res) => {
              tiene_manager, nombre_manager, fechas_no_disponibles,
              anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
              ciudad_nacimiento, pais_nacimiento, puede_subir_contrato,
-             acentos_maneja, acentos_no_maneja
+             acentos_maneja, acentos_no_maneja,
+             fecha_actualizacion_experiencia, fecha_actualizacion_formacion
              FROM actores WHERE id = ?`,
             [req.userId]
         );
@@ -399,6 +400,26 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
             acentos_maneja, acentos_no_maneja
         } = req.body;
 
+        // Leer valores ANTES del UPDATE para comparar cambios correctamente
+        const [[actorAntes]] = await promisePool.query(
+            `SELECT nombre, telefono, fecha_nacimiento, genero, altura, peso,
+             color_ojos, color_cabello, biografia, experiencia, habilidades,
+             talla_camiseta, talla_pantalon, talla_zapatos, formacion_artistica,
+             redes_sociales, idiomas, edad_aparente_min, edad_aparente_max,
+             tiene_manager, nombre_manager, fechas_no_disponibles,
+             anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
+             ciudad_nacimiento, pais_nacimiento, acentos_maneja, acentos_no_maneja, email
+             FROM actores WHERE id = ?`, [req.userId]
+        );
+
+        // Detectar si cambiaron experiencia o formación artística
+        const expCambio  = String(actorAntes?.experiencia        ?? '').trim() !== String(experiencia        ?? '').trim();
+        const formCambio = String(actorAntes?.formacion_artistica ?? '').trim() !== String(formacion_artistica ?? '').trim();
+        const extraSet = [
+            expCambio  ? 'fecha_actualizacion_experiencia = NOW()' : null,
+            formCambio ? 'fecha_actualizacion_formacion = NOW()'   : null
+        ].filter(Boolean).join(', ');
+
         await promisePool.query(
             `UPDATE actores SET
              nombre = ?, telefono = ?, fecha_nacimiento = ?, genero = ?,
@@ -411,6 +432,7 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
              anio_inicio_experiencia = ?, escenas_sexo = ?, desnudos = ?, link_reel = ?,
              ciudad_nacimiento = ?, pais_nacimiento = ?,
              acentos_maneja = ?, acentos_no_maneja = ?
+             ${extraSet ? ', ' + extraSet : ''}
              WHERE id = ?`,
             [nombre, telefono || null, fecha_nacimiento || null, genero || null,
              altura || null, peso || null, color_ojos || null, color_cabello || null,
@@ -429,18 +451,8 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
              req.userId]
         );
 
-        // Registrar notificación con detalle de campos cambiados
+        // Notificación admin + correo si cambió experiencia o formación
         try {
-            const [[actorActual]] = await promisePool.query(
-                `SELECT nombre, telefono, fecha_nacimiento, genero, altura, peso,
-                 color_ojos, color_cabello, biografia, experiencia, habilidades,
-                 talla_camiseta, talla_pantalon, talla_zapatos, formacion_artistica,
-                 redes_sociales, idiomas, edad_aparente_min, edad_aparente_max,
-                 tiene_manager, nombre_manager, fechas_no_disponibles,
-                 anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
-                 ciudad_nacimiento, pais_nacimiento, acentos_maneja, acentos_no_maneja
-                 FROM actores WHERE id = ?`, [req.userId]
-            );
             const etiquetas = {
                 nombre: 'Nombre', telefono: 'Teléfono', fecha_nacimiento: 'Fecha de nacimiento',
                 genero: 'Género', altura: 'Altura', peso: 'Peso',
@@ -467,7 +479,7 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
                 ciudad_nacimiento, pais_nacimiento, acentos_maneja, acentos_no_maneja
             };
             const cambiados = Object.keys(etiquetas).filter(campo => {
-                const viejo = String(actorActual[campo] ?? '').trim();
+                const viejo = String(actorAntes[campo] ?? '').trim();
                 const nuevo = String(nuevos[campo] ?? '').trim();
                 return viejo !== nuevo;
             }).map(c => etiquetas[c]);
@@ -478,8 +490,20 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
 
             await promisePool.query(
                 'INSERT INTO notificaciones_admin (actor_id, actor_nombre, detalle) VALUES (?, ?, ?)',
-                [req.userId, actorActual ? actorActual.nombre : 'Actor', detalle]
+                [req.userId, actorAntes ? actorAntes.nombre : 'Actor', detalle]
             );
+
+            // Correo al admin si cambió experiencia o formación artística
+            if ((expCambio || formCambio) && process.env.ADMIN_EMAIL) {
+                const camposExp = [];
+                if (expCambio)  camposExp.push('Experiencia profesional');
+                if (formCambio) camposExp.push('Formación artística');
+                const { enviarActualizacionExperiencia } = require('./mailer');
+                enviarActualizacionExperiencia(
+                    { nombre: actorAntes.nombre, email: actorAntes.email, id: req.userId },
+                    camposExp
+                ).catch(() => {});
+            }
         } catch { /* no bloquear si la tabla aún no existe */ }
 
         res.json({ mensaje: 'Perfil actualizado exitosamente' });
@@ -988,6 +1012,7 @@ app.get('/api/admin/actores/:id', verificarAdmin, async (req, res) => {
              edad_aparente_min, edad_aparente_max, tiene_manager, nombre_manager,
              fechas_no_disponibles, anio_inicio_experiencia, escenas_sexo, desnudos, link_reel,
              ciudad_nacimiento, pais_nacimiento, puede_subir_contrato, portafolio,
+             fecha_actualizacion_experiencia, fecha_actualizacion_formacion,
              TIMESTAMPDIFF(YEAR, fecha_nacimiento, CURDATE()) AS edad
              FROM actores WHERE id = ?`,
             [req.params.id]
@@ -2020,6 +2045,111 @@ app.get('/reset-password.html', (_req, res) => res.sendFile(path.join(__dirname,
 app.get('/convocatorias.html', (_req, res) => res.sendFile(path.join(__dirname, 'convocatorias.html')));
 app.get('/terminos-y-condiciones.html', (_req, res) => res.sendFile(path.join(__dirname, 'terminos-y-condiciones.html')));
 app.get('/reporte-conexiones.html', (_req, res) => res.sendFile(path.join(__dirname, 'reporte-conexiones.html')));
+app.get('/admin-importar.html', (_req, res) => res.sendFile(path.join(__dirname, 'admin-importar.html')));
+
+// ==================== IMPORTACIÓN MASIVA DE ACTORES ====================
+const PASSWORD_IMPORTACION = 'Actor2026*';
+
+// Mapeo flexible de columnas del Excel
+function mapearColumna(headers, ...candidatos) {
+    for (const c of candidatos) {
+        const h = headers.find(h => h && h.toString().toLowerCase().trim().includes(c.toLowerCase()));
+        if (h) return h;
+    }
+    return null;
+}
+
+app.post('/api/admin/importar-actores', verificarAdmin, upload.single('archivo'), async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' });
+    try {
+        const wb = XLSX.readFile(req.file.path);
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const filas = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        fs.unlinkSync(req.file.path);
+
+        if (filas.length === 0) return res.status(400).json({ error: 'El archivo está vacío' });
+
+        const headers = Object.keys(filas[0]);
+        // Mapeo de columnas
+        const COL = {
+            nombre:   mapearColumna(headers, 'nombre', 'name', 'actor'),
+            email:    mapearColumna(headers, 'email', 'correo', 'mail'),
+            telefono: mapearColumna(headers, 'telefono', 'teléfono', 'celular', 'phone', 'tel'),
+            fecha_nac:mapearColumna(headers, 'fecha_nac', 'nacimiento', 'birthday', 'fecha de nac'),
+            genero:   mapearColumna(headers, 'genero', 'género', 'sexo', 'gender'),
+            ciudad:   mapearColumna(headers, 'ciudad', 'city', 'ciudad_nac'),
+            pais:     mapearColumna(headers, 'pais', 'país', 'country'),
+            altura:   mapearColumna(headers, 'altura', 'estatura', 'height'),
+            portafolio: mapearColumna(headers, 'portafolio', 'portfolio'),
+        };
+
+        const PASSWORD_HASH = await bcrypt.hash(PASSWORD_IMPORTACION, 10);
+        const resultados = [];
+        const LOTE = 5;
+
+        for (let i = 0; i < filas.length; i++) {
+            const fila = filas[i];
+            const nombre = COL.nombre ? String(fila[COL.nombre] || '').trim() : '';
+            const email  = COL.email  ? String(fila[COL.email]  || '').trim().toLowerCase() : '';
+
+            if (!nombre || !email) {
+                resultados.push({ fila: i+2, nombre: nombre||'—', email: email||'—', estado: 'error', motivo: 'Nombre o email vacío' });
+                continue;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                resultados.push({ fila: i+2, nombre, email, estado: 'error', motivo: 'Email inválido' });
+                continue;
+            }
+
+            const [existente] = await promisePool.query('SELECT id FROM actores WHERE email = ?', [email]);
+            if (existente.length > 0) {
+                resultados.push({ fila: i+2, nombre, email, estado: 'duplicado', motivo: 'Email ya registrado' });
+                continue;
+            }
+
+            const portafolioVal = (() => {
+                const p = COL.portafolio ? String(fila[COL.portafolio] || '').trim().toLowerCase() : '';
+                if (p.includes('paola')) return 'paola_ochoa';
+                if (p.includes('8a') || p.includes('representaciones')) return '8a_representaciones';
+                return 'ninguno';
+            })();
+
+            const telefono   = COL.telefono  ? String(fila[COL.telefono]  || '').trim() : null;
+            const fechaNac   = COL.fecha_nac ? String(fila[COL.fecha_nac] || '').trim() : null;
+            const genero     = COL.genero    ? String(fila[COL.genero]    || '').trim().toLowerCase() : null;
+            const ciudad     = COL.ciudad    ? String(fila[COL.ciudad]    || '').trim() : null;
+            const pais       = COL.pais      ? String(fila[COL.pais]      || '').trim() : null;
+            const altura     = COL.altura    ? parseFloat(fila[COL.altura]) || null : null;
+
+            try {
+                await promisePool.query(
+                    `INSERT INTO actores (nombre, email, password, telefono, fecha_nacimiento, genero,
+                     ciudad_nacimiento, pais_nacimiento, altura, portafolio, perfil_completo, fecha_registro)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
+                    [nombre, email, PASSWORD_HASH, telefono||null, fechaNac||null, genero||null,
+                     ciudad||null, pais||null, altura, portafolioVal]
+                );
+
+                // Enviar email en lotes para no saturar SMTP
+                let emailOk = false;
+                if ((i % LOTE) === 0 && i > 0) await new Promise(r => setTimeout(r, 1000));
+                emailOk = await mailer.enviarCredenciales({ nombre, email }, PASSWORD_IMPORTACION);
+
+                resultados.push({ fila: i+2, nombre, email, portafolio: portafolioVal, estado: 'ok', emailOk });
+            } catch (e) {
+                resultados.push({ fila: i+2, nombre, email, estado: 'error', motivo: e.message });
+            }
+        }
+
+        const ok        = resultados.filter(r => r.estado === 'ok').length;
+        const errores   = resultados.filter(r => r.estado === 'error').length;
+        const duplicados= resultados.filter(r => r.estado === 'duplicado').length;
+        res.json({ resultados, resumen: { total: filas.length, ok, errores, duplicados }, columnas: COL });
+    } catch (e) {
+        console.error('Error importación:', e);
+        res.status(500).json({ error: 'Error al procesar el archivo: ' + e.message });
+    }
+});
 
 // Reporte de conexiones
 app.get('/api/admin/reporte-conexiones', verificarAdmin, async (req, res) => {

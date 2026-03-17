@@ -60,6 +60,26 @@ function estaNoDisponibleHoy(actor) {
     return fechas.some(f => f.inicio && f.fin && hoy >= f.inicio && hoy <= f.fin);
 }
 
+// Verifica si el actor tiene algún período de no disponibilidad que se solape con el rango de rodaje
+function estaNoDisponibleEnRango(actor, fechaInicio, fechaFin) {
+    const fechas = parseJSON(actor.fechas_no_disponibles, []);
+    return fechas.some(f => {
+        const ini = f.inicio || f.desde || '';
+        const fin = f.fin   || f.hasta || '';
+        if (!ini || !fin) return false;
+        // Hay solapamiento si el período del actor empieza antes de que termine el rodaje
+        // Y termina después de que empieza el rodaje
+        return ini <= fechaFin && fin >= fechaInicio;
+    });
+}
+
+// Verifica si el actor ha trabajado en una producción (búsqueda parcial, sin distinción mayúsculas)
+function trabajoEnProduccion(actor, nombreProduccion) {
+    const exps = parseJSON(actor.experiencia, []);
+    const busqueda = nombreProduccion.toLowerCase().trim();
+    return exps.some(e => (e.nombre || '').toLowerCase().includes(busqueda));
+}
+
 // ==================== AUTH ====================
 
 function verificarAdmin() {
@@ -96,6 +116,9 @@ function getFiltros() {
         ciudad_nacimiento: document.getElementById('filtroCiudad').value.trim(),
         acento:           document.getElementById('filtroAcento').value,
         portafolio:       document.getElementById('filtroPortafolio').value,
+        fechaInicioRodaje: document.getElementById('filtroFechaInicio').value,
+        fechaFinRodaje:   document.getElementById('filtroFechaFin').value,
+        produccion:       document.getElementById('filtroProduccion').value.trim(),
     };
 }
 
@@ -141,9 +164,17 @@ async function cargarActores(filtros = {}) {
             });
         }
 
-        // Filtro client-side: ocultar actores no disponibles hoy (solo cuando se filtra)
-        if (filtroFechasActivo) {
+        // Filtro client-side: disponibilidad para rodaje
+        if (filtros.fechaInicioRodaje && filtros.fechaFinRodaje) {
+            actores = actores.filter(a => !estaNoDisponibleEnRango(a, filtros.fechaInicioRodaje, filtros.fechaFinRodaje));
+        } else if (filtroFechasActivo) {
+            // Retrocompat: si no hay rango pero el flag está activo, filtrar por hoy
             actores = actores.filter(a => !estaNoDisponibleHoy(a));
+        }
+
+        // Filtro client-side: excluir actores que ya grabaron en esa producción
+        if (filtros.produccion) {
+            actores = actores.filter(a => !trabajoEnProduccion(a, filtros.produccion));
         }
 
         return actores;
@@ -159,7 +190,14 @@ function renderActores(actores) {
     const grid = document.getElementById('actoresGrid');
     const contador = document.getElementById('contadorActores');
     const n = actores.length;
-    const sufijo = filtroFechasActivo ? ' · disponibles hoy' : '';
+    const f = getFiltros();
+    let sufijo = '';
+    if (f.fechaInicioRodaje && f.fechaFinRodaje) {
+        sufijo = ` · disponibles ${f.fechaInicioRodaje} → ${f.fechaFinRodaje}`;
+    } else if (filtroFechasActivo) {
+        sufijo = ' · disponibles hoy';
+    }
+    if (f.produccion) sufijo += ` · sin "${f.produccion}"`;
     contador.textContent = `${n} actor${n !== 1 ? 'es' : ''} encontrado${n !== 1 ? 's' : ''}${sufijo}`;
 
     if (n === 0) {
@@ -247,6 +285,18 @@ window.verActor = async function(id) {
     } catch { mostrarNotificacion('Error de conexión', 'error'); }
 };
 
+// Devuelve badge "Actualizado" + fondo si la fecha es de los últimos 7 días
+function badgeReciente(fechaISO) {
+    if (!fechaISO) return { badge: '', estilo: '' };
+    const diff = (Date.now() - new Date(fechaISO).getTime()) / (1000 * 60 * 60 * 24);
+    if (diff > 7) return { badge: '', estilo: '' };
+    const hace = diff < 1 ? 'hoy' : diff < 2 ? 'ayer' : `hace ${Math.floor(diff)} días`;
+    return {
+        badge: `<span style="background:#fff3cd;color:#856404;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;margin-left:8px">🆕 Actualizado ${hace}</span>`,
+        estilo: 'background:#fffbf0;border:1.5px solid #ffe08a;border-radius:10px;padding:14px 16px;'
+    };
+}
+
 function mostrarModalVista(a, fotos) {
     const edad = a.edad != null ? `${a.edad} años · ` : '';
     const idiomas = parseJSON(a.idiomas, []);
@@ -254,6 +304,8 @@ function mostrarModalVista(a, fotos) {
     const formaciones = parseJSON(a.formacion_artistica, []);
     const redes = parseJSON(a.redes_sociales, {});
     const fecha = a.fecha_nacimiento ? a.fecha_nacimiento.split('T')[0] : '—';
+    const recExp  = badgeReciente(a.fecha_actualizacion_experiencia);
+    const recForm = badgeReciente(a.fecha_actualizacion_formacion);
     const edadAp = (a.edad_aparente_min && a.edad_aparente_max)
         ? `${a.edad_aparente_min} – ${a.edad_aparente_max} años` : '—';
     const habArr = (() => {
@@ -315,8 +367,8 @@ function mostrarModalVista(a, fotos) {
             </div>` : ''}
 
             ${exps.length ? `
-            <div class="vista-section">
-                <h4>Experiencia Profesional</h4>
+            <div class="vista-section" style="${recExp.estilo}">
+                <h4>Experiencia Profesional ${recExp.badge}</h4>
                 ${exps.map(e => `
                     <div style="margin-bottom:8px;padding:10px;background:#fafafa;border-radius:8px;font-size:13px">
                         <strong>${esc(e.nombre) || '—'}</strong>
@@ -325,8 +377,8 @@ function mostrarModalVista(a, fotos) {
             </div>` : ''}
 
             ${formaciones.length ? `
-            <div class="vista-section">
-                <h4>Formación Artística</h4>
+            <div class="vista-section" style="${recForm.estilo}">
+                <h4>Formación Artística ${recForm.badge}</h4>
                 ${formaciones.map(f => `
                     <div style="margin-bottom:8px;padding:10px;background:#fafafa;border-radius:8px;font-size:13px">
                         <strong>${esc(f.nombre) || '—'}</strong>
@@ -608,6 +660,9 @@ document.getElementById('btnLimpiarFiltros').addEventListener('click', async () 
     document.getElementById('filtroCiudad').value = '';
     document.getElementById('filtroAcento').value = '';
     document.getElementById('filtroDesnudos').value = '';
+    document.getElementById('filtroFechaInicio').value = '';
+    document.getElementById('filtroFechaFin').value = '';
+    document.getElementById('filtroProduccion').value = '';
     filtroFechasActivo = false;
     const actores = await cargarActores();
     renderActores(actores);

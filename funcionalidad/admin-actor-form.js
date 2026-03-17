@@ -355,11 +355,24 @@ window.eliminarExp = function(i) { experiencias.splice(i, 1); renderExperiencias
 
 // ==================== CONSTRUIR HTML DEL FORM ====================
 
+function badgeRecienteForm(fechaISO) {
+    if (!fechaISO) return { badge: '', estilo: '' };
+    const diff = (Date.now() - new Date(fechaISO).getTime()) / (1000 * 60 * 60 * 24);
+    if (diff > 7) return { badge: '', estilo: '' };
+    const hace = diff < 1 ? 'hoy' : diff < 2 ? 'ayer' : `hace ${Math.floor(diff)} días`;
+    return {
+        badge: `<span style="background:#fff3cd;color:#856404;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;margin-left:8px">🆕 Actualizado ${hace}</span>`,
+        estilo: 'border:2px solid #ffe08a;background:#fffbf0;'
+    };
+}
+
 function construirFormHTML(a) {
     const esEdicion = !!actorId;
     const fecha = a.fecha_nacimiento ? a.fecha_nacimiento.split('T')[0] : '';
     const redes = parseJSON(a.redes_sociales, {});
     const rolActual = a.is_admin ? 'admin' : (a.is_casting ? 'casting' : 'actor');
+    const recExp  = badgeRecienteForm(a.fecha_actualizacion_experiencia);
+    const recForm = badgeRecienteForm(a.fecha_actualizacion_formacion);
 
     return `
     ${esEdicion ? `
@@ -631,18 +644,18 @@ function construirFormHTML(a) {
     </div>
 
     <!-- Formación Artística -->
-    <div class="card">
+    <div class="card" style="${recForm.estilo}">
         <div class="card-header-flex">
-            <h2>Formación Artística</h2>
+            <h2>Formación Artística ${recForm.badge}</h2>
             <button type="button" class="btn-secondary btn-sm" onclick="agregarFormacion()">+ Agregar Formación</button>
         </div>
         <div id="formacionesCont"></div>
     </div>
 
     <!-- Experiencia Profesional -->
-    <div class="card">
+    <div class="card" style="${recExp.estilo}">
         <div class="card-header-flex">
-            <h2>Experiencia Profesional</h2>
+            <h2>Experiencia Profesional ${recExp.badge}</h2>
             <button type="button" class="btn-secondary btn-sm" onclick="agregarExp()">+ Agregar Experiencia</button>
         </div>
         <div id="experienciasCont"></div>
