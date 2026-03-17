@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Conexiones — 8a Representaciones</title>
+    <link rel="stylesheet" href="estilos/style-admin.css">
+    <style>
+        .reporte-container { max-width: 1200px; margin: 0 auto; padding: 24px 16px 60px; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+
+        .stat-card .num {
+            font-size: 32px;
+            font-weight: 700;
+            color: #910909;
+            display: block;
+        }
+
+        .stat-card .label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .stat-card.verde .num { color: #27ae60; }
+        .stat-card.rojo  .num { color: #c0392b; }
+        .stat-card.azul  .num { color: #2980b9; }
+
+        .filtros {
+            background: #fff;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 14px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+
+        .filtros .fg { display: flex; flex-direction: column; gap: 4px; }
+        .filtros label { font-size: 12px; font-weight: 600; color: #666; }
+        .filtros select, .filtros input {
+            padding: 8px 12px;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            font-size: 13px;
+            background: #fafafa;
+        }
+
+        .btn-filtrar {
+            padding: 9px 22px;
+            background: #910909;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .tabla-wrap {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            overflow: hidden;
+        }
+
+        .tabla-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tabla-header h3 { font-size: 15px; color: #333; }
+        .tabla-header span { font-size: 12px; color: #aaa; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: #fafafa;
+            padding: 11px 14px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 700;
+            color: #666;
+            border-bottom: 1px solid #eee;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 10px 14px;
+            font-size: 13px;
+            color: #444;
+            border-bottom: 1px solid #f5f5f5;
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        .badge-accion {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge-ok    { background: #e8f8f0; color: #1a7a4a; }
+        .badge-fail  { background: #fdecea; color: #c0392b; }
+        .badge-reg   { background: #e8f0fd; color: #1a4a8a; }
+
+        .dispositivo { font-size: 11px; color: #888; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        .ip-cell { font-family: monospace; font-size: 12px; color: #555; }
+
+        .empty { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .hide-mobile { display: none; }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar">
+    <div class="nav-container">
+        <div class="nav-logo">
+            <img src="imagenes/LOGO 8A ROJO-SIN FONDO.png" alt="8a Representaciones">
+        </div>
+        <div class="nav-title">Reporte de Conexiones</div>
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menú">☰</button>
+        <div class="nav-actions" id="navMenu">
+            <a href="admin.html" class="nav-link nav-link-btn">← Panel Admin</a>
+            <a href="#" class="nav-link nav-link-btn" id="btnCerrarSesion">Cerrar Sesión</a>
+        </div>
+    </div>
+</nav>
+
+<div class="reporte-container">
+    <div class="page-title">📡 Reporte de Conexiones</div>
+
+    <!-- Tarjetas de estadísticas -->
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><span class="num" id="statTotal">—</span><div class="label">Total eventos</div></div>
+        <div class="stat-card verde"><span class="num" id="statExitosos">—</span><div class="label">Logins exitosos</div></div>
+        <div class="stat-card rojo"><span class="num" id="statFallidos">—</span><div class="label">Intentos fallidos</div></div>
+        <div class="stat-card azul"><span class="num" id="statRegistros">—</span><div class="label">Registros nuevos</div></div>
+        <div class="stat-card"><span class="num" id="statUsuarios">—</span><div class="label">Usuarios únicos</div></div>
+        <div class="stat-card"><span class="num" id="statIPs">—</span><div class="label">IPs únicas</div></div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filtros">
+        <div class="fg">
+            <label>Período</label>
+            <select id="filtroDias">
+                <option value="1">Últimas 24 horas</option>
+                <option value="7" selected>Últimos 7 días</option>
+                <option value="15">Últimos 15 días</option>
+                <option value="30">Últimos 30 días</option>
+                <option value="90">Últimos 90 días</option>
+            </select>
+        </div>
+        <div class="fg">
+            <label>Tipo de evento</label>
+            <select id="filtroAccion">
+                <option value="">Todos</option>
+                <option value="login_exitoso">Login exitoso</option>
+                <option value="login_exitoso_2fa">Login exitoso (2FA)</option>
+                <option value="login_fallido">Login fallido</option>
+                <option value="login_2fa_fallido">2FA fallido</option>
+                <option value="registro">Registro nuevo</option>
+            </select>
+        </div>
+        <button class="btn-filtrar" onclick="cargarReporte()">Buscar</button>
+    </div>
+
+    <!-- Tabla -->
+    <div class="tabla-wrap">
+        <div class="tabla-header">
+            <h3>Registro de accesos</h3>
+            <span id="contadorLogs">Cargando...</span>
+        </div>
+        <div style="overflow-x:auto">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha y hora</th>
+                        <th>Actor</th>
+                        <th>Evento</th>
+                        <th class="hide-mobile">IP</th>
+                        <th class="hide-mobile">País / Ciudad</th>
+                        <th class="hide-mobile">Dispositivo</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaBody">
+                    <tr><td colspan="6" class="empty">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="notification" class="notification"></div>
+
+<script>
+const API_URL = '/api';
+
+function getToken() { return localStorage.getItem('token'); }
+
+function formatFecha(f) {
+    if (!f) return '—';
+    const d = new Date(f);
+    return d.toLocaleDateString('es-CO', { day:'2-digit', month:'2-digit', year:'numeric' }) +
+           ' ' + d.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' });
+}
+
+function badgeAccion(accion) {
+    const mapa = {
+        'login_exitoso':      { cls: 'badge-ok',   txt: '✅ Login OK' },
+        'login_exitoso_2fa':  { cls: 'badge-ok',   txt: '✅ Login 2FA' },
+        'login_fallido':      { cls: 'badge-fail', txt: '❌ Fallido' },
+        'login_2fa_fallido':  { cls: 'badge-fail', txt: '❌ 2FA fallido' },
+        'registro':           { cls: 'badge-reg',  txt: '🆕 Registro' },
+    };
+    const b = mapa[accion] || { cls: '', txt: accion };
+    return `<span class="badge-accion ${b.cls}">${b.txt}</span>`;
+}
+
+function parsearDispositivo(ua) {
+    if (!ua) return '—';
+    let os = 'Desconocido', browser = '';
+    if (/Android/i.test(ua))      os = '📱 Android';
+    else if (/iPhone|iPad/i.test(ua)) os = '📱 iOS';
+    else if (/Windows/i.test(ua)) os = '🖥 Windows';
+    else if (/Mac/i.test(ua))     os = '🖥 Mac';
+    else if (/Linux/i.test(ua))   os = '🖥 Linux';
+
+    if (/Chrome/i.test(ua) && !/Edg/i.test(ua)) browser = 'Chrome';
+    else if (/Edg/i.test(ua))     browser = 'Edge';
+    else if (/Firefox/i.test(ua)) browser = 'Firefox';
+    else if (/Safari/i.test(ua))  browser = 'Safari';
+
+    return `${os}${browser ? ' · ' + browser : ''}`;
+}
+
+async function cargarReporte() {
+    const token = getToken();
+    if (!token) { window.location.href = 'login.html'; return; }
+
+    const dias   = document.getElementById('filtroDias').value;
+    const accion = document.getElementById('filtroAccion').value;
+    const params = new URLSearchParams({ dias });
+    if (accion) params.append('accion', accion);
+
+    document.getElementById('contadorLogs').textContent = 'Cargando...';
+    document.getElementById('tablaBody').innerHTML = '<tr><td colspan="6" class="empty">Cargando...</td></tr>';
+
+    try {
+        const res = await fetch(`${API_URL}/admin/reporte-conexiones?${params}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 403) { window.location.href = 'login.html'; return; }
+        const data = await res.json();
+        if (!res.ok) { mostrarNotificacion(data.error || 'Error al cargar reporte', 'error'); return; }
+
+        // Stats
+        const s = data.stats || {};
+        document.getElementById('statTotal').textContent     = s.total || 0;
+        document.getElementById('statExitosos').textContent  = s.exitosos || 0;
+        document.getElementById('statFallidos').textContent  = s.fallidos || 0;
+        document.getElementById('statRegistros').textContent = s.registros || 0;
+        document.getElementById('statUsuarios').textContent  = s.usuarios_unicos || 0;
+        document.getElementById('statIPs').textContent       = s.ips_unicas || 0;
+
+        // Tabla
+        const logs = data.logs || [];
+        document.getElementById('contadorLogs').textContent = `${logs.length} evento${logs.length !== 1 ? 's' : ''}`;
+
+        if (logs.length === 0) {
+            document.getElementById('tablaBody').innerHTML = '<tr><td colspan="6" class="empty">No hay eventos en el período seleccionado.</td></tr>';
+            return;
+        }
+
+        document.getElementById('tablaBody').innerHTML = logs.map(l => `
+            <tr>
+                <td style="white-space:nowrap">${formatFecha(l.fecha)}</td>
+                <td>
+                    <div style="font-weight:600;font-size:13px">${l.actor_nombre || '<span style="color:#aaa">Desconocido</span>'}</div>
+                    ${l.actor_email ? `<div style="font-size:11px;color:#aaa">${l.actor_email}</div>` : ''}
+                </td>
+                <td>${badgeAccion(l.accion)}</td>
+                <td class="ip-cell hide-mobile">${l.ip || '—'}</td>
+                <td class="hide-mobile">
+                    ${l.pais ? `<div style="font-size:13px">${l.pais}</div>` : ''}
+                    ${l.ciudad ? `<div style="font-size:11px;color:#888">${l.ciudad}</div>` : '<span style="color:#ccc">—</span>'}
+                </td>
+                <td class="hide-mobile">
+                    <div class="dispositivo" title="${l.user_agent || ''}">${parsearDispositivo(l.user_agent)}</div>
+                </td>
+            </tr>
+        `).join('');
+
+    } catch { mostrarNotificacion('Error de conexión', 'error'); }
+}
+
+function mostrarNotificacion(msg, tipo) {
+    const n = document.getElementById('notification');
+    n.textContent = msg;
+    n.className = `notification ${tipo} show`;
+    setTimeout(() => n.classList.remove('show'), 3500);
+}
+
+// Verificar que es admin
+const token = getToken();
+if (!token) { window.location.href = 'login.html'; }
+else {
+    fetch(`${API_URL}/admin/reporte-conexiones?dias=1`, { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r => { if (r.status === 403) window.location.href = 'login.html'; });
+}
+
+// Menú hamburguesa
+document.getElementById('hamburgerBtn').addEventListener('click', () => {
+    document.getElementById('navMenu').classList.toggle('open');
+});
+
+// Cerrar sesión
+document.getElementById('btnCerrarSesion').addEventListener('click', () => {
+    localStorage.removeItem('token');
+    window.location.href = 'login.html';
+});
+
+// Cargar al entrar
+cargarReporte();
+</script>
+</body>
+</html>

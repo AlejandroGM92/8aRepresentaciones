@@ -307,7 +307,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
         const passwordMatch = await bcrypt.compare(password, actor.password);
 
         if (!passwordMatch) {
-            await registrarAuditoria(actor.id, 'login_fallido', 'Contraseña incorrecta', req.ip);
+            await registrarAuditoria(actor.id, 'login_fallido', 'Contraseña incorrecta', req.ip, req.headers['user-agent']);
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
 
@@ -647,11 +647,25 @@ app.put('/api/perfil/password', verificarToken, async (req, res) => {
 
 // ==================== AUDITORÍA ====================
 
-async function registrarAuditoria(actorId, accion, detalle, ip) {
+async function obtenerGeoIP(ip) {
     try {
+        if (!ip || ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168') || ip.startsWith('10.')) {
+            return { pais: 'Local', ciudad: 'Desarrollo' };
+        }
+        const ipLimpia = ip.replace('::ffff:', '');
+        const r = await fetch(`http://ip-api.com/json/${ipLimpia}?fields=country,city,status&lang=es`);
+        const d = await r.json();
+        if (d.status === 'success') return { pais: d.country || null, ciudad: d.city || null };
+    } catch { /* silencioso */ }
+    return { pais: null, ciudad: null };
+}
+
+async function registrarAuditoria(actorId, accion, detalle, ip, userAgent) {
+    try {
+        const geo = await obtenerGeoIP(ip);
         await promisePool.query(
-            'INSERT INTO audit_log (actor_id, accion, detalle, ip) VALUES (?, ?, ?, ?)',
-            [actorId || null, accion, detalle || null, ip || null]
+            'INSERT INTO audit_log (actor_id, accion, detalle, ip, user_agent, pais, ciudad) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [actorId || null, accion, detalle || null, ip || null, userAgent || null, geo.pais, geo.ciudad]
         );
     } catch { /* No bloquear la app si el log falla */ }
 }
@@ -855,7 +869,7 @@ app.post('/api/auth/2fa/verify', async (req, res) => {
 
         const valido = speakeasy.totp.verify({ secret: actor.totp_secret, encoding: 'base32', token: codigo, window: 1 });
         if (!valido) {
-            await registrarAuditoria(actor.id, 'login_2fa_fallido', 'Código TOTP incorrecto', req.ip);
+            await registrarAuditoria(actor.id, 'login_2fa_fallido', 'Código TOTP incorrecto', req.ip, req.headers['user-agent']);
             return res.status(401).json({ error: 'Código incorrecto' });
         }
 
@@ -863,7 +877,7 @@ app.post('/api/auth/2fa/verify', async (req, res) => {
             { id: actor.id, email: actor.email, is_admin: actor.is_admin === 1, is_casting: actor.is_casting === 1 },
             JWT_SECRET, { expiresIn: '7d' }
         );
-        await registrarAuditoria(actor.id, 'login_exitoso_2fa', 'Login completado con 2FA', req.ip);
+        await registrarAuditoria(actor.id, 'login_exitoso_2fa', 'Login completado con 2FA', req.ip, req.headers['user-agent']);
         res.json({
             token,
             actor: {
@@ -2005,6 +2019,46 @@ app.get('/forgot-password.html', (_req, res) => res.sendFile(path.join(__dirname
 app.get('/reset-password.html', (_req, res) => res.sendFile(path.join(__dirname, 'reset-password.html')));
 app.get('/convocatorias.html', (_req, res) => res.sendFile(path.join(__dirname, 'convocatorias.html')));
 app.get('/terminos-y-condiciones.html', (_req, res) => res.sendFile(path.join(__dirname, 'terminos-y-condiciones.html')));
+app.get('/reporte-conexiones.html', (_req, res) => res.sendFile(path.join(__dirname, 'reporte-conexiones.html')));
+
+// Reporte de conexiones
+app.get('/api/admin/reporte-conexiones', verificarAdmin, async (req, res) => {
+    try {
+        const { dias = 7, accion } = req.query;
+        const limite = Math.min(parseInt(dias) || 7, 90);
+        let query = `
+            SELECT al.id, al.actor_id, al.accion, al.detalle, al.ip,
+                   al.user_agent, al.pais, al.ciudad, al.fecha,
+                   a.nombre AS actor_nombre, a.email AS actor_email
+            FROM audit_log al
+            LEFT JOIN actores a ON al.actor_id = a.id
+            WHERE al.fecha >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND al.accion IN ('login_exitoso','login_exitoso_2fa','login_fallido','login_2fa_fallido','registro')
+        `;
+        const params = [limite];
+        if (accion) { query += ' AND al.accion = ?'; params.push(accion); }
+        query += ' ORDER BY al.fecha DESC LIMIT 500';
+        const [logs] = await promisePool.query(query, params);
+
+        const [stats] = await promisePool.query(`
+            SELECT
+                COUNT(*) AS total,
+                SUM(accion IN ('login_exitoso','login_exitoso_2fa')) AS exitosos,
+                SUM(accion IN ('login_fallido','login_2fa_fallido')) AS fallidos,
+                SUM(accion = 'registro') AS registros,
+                COUNT(DISTINCT actor_id) AS usuarios_unicos,
+                COUNT(DISTINCT ip) AS ips_unicas
+            FROM audit_log
+            WHERE fecha >= DATE_SUB(NOW(), INTERVAL ? DAY)
+              AND accion IN ('login_exitoso','login_exitoso_2fa','login_fallido','login_2fa_fallido','registro')
+        `, [limite]);
+
+        res.json({ logs, stats: stats[0] });
+    } catch (error) {
+        console.error('Error reporte conexiones:', error);
+        res.status(500).json({ error: 'Error al generar reporte' });
+    }
+});
 
 // ==================== TEST DE CORREO (solo admin) ====================
 app.post('/api/admin/test-email', verificarToken, verificarAdmin, async (req, res) => {
